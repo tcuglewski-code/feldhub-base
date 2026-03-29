@@ -7,593 +7,713 @@ datasource db {
 }
 
 // ============================================================
-// APPFABRIK BASE — Generisches Field Service Management
+// APPFABRIK BASE — Generisches Multi-Tenant Field Service Management
+// Version: 2.0.0 (Generisch)
+// ============================================================
+// Core-Models: User, Project, Task, TimeEntry, Invoice, Document
+// Alle Models haben tenantId als Pflichtfeld (außer Tenant selbst)
 // ============================================================
 
+// ========== TENANT ==========
+model Tenant {
+  id           String   @id @default(cuid())
+  name         String                          // "Koch Aufforstung GmbH"
+  slug         String   @unique                // "koch-aufforstung"
+  logo         String?
+  primaryColor String   @default("#2C3A1C")
+  domain       String?                         // "forstmanager.koch-aufforstung.de"
+  timezone     String   @default("Europe/Berlin")
+  locale       String   @default("de")
+  currency     String   @default("EUR")
+  industry     String?                         // "forestry", "landscaping", "cleaning", etc.
+  config       Json?                           // Tenant-spezifische Konfiguration
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([slug])
+}
+
+// ========== USER (Core-Model) ==========
 model User {
   id          String   @id @default(cuid())
-  name        String
-  email       String   @unique
+  tenantId    String                           // PFLICHT: Multi-Tenant
+  email       String
   password    String
-  role        String   @default("mitarbeiter") // admin, gruppenführer, mitarbeiter, kunde
+  name        String
+  role        String   @default("worker")      // admin, manager, worker, viewer
   avatar      String?
+  phone       String?
   active      Boolean  @default(true)
-  permissions String[] @default([])
+  permissions String[] @default([])            // Feingranulare Berechtigungen
   lastLoginAt DateTime?
-  notifyAuftraege Boolean @default(true)
+  settings    Json?                            // User-spezifische Einstellungen
+
+  // 2FA Felder
+  twoFactorSecret      String?
+  twoFactorEnabled     Boolean  @default(false)
+  twoFactorBackupCodes String[]
+
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-  sessions    Session[]
-  mitarbeiter Mitarbeiter?
+
+  // Relations
+  sessions     Session[]
+  teamMember   TeamMember?
+  timeEntries  TimeEntry[]
+  documents    Document[]      @relation("DocumentCreator")
+  tasks        Task[]          @relation("TaskAssignee")
+  comments     Comment[]
+  activityLogs ActivityLog[]
+
+  @@unique([tenantId, email])
+  @@index([tenantId])
 }
 
 model Session {
   id        String   @id @default(cuid())
+  tenantId  String
   userId    String
   token     String   @unique
   expiresAt DateTime
   createdAt DateTime @default(now())
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([token])
 }
 
-model Mitarbeiter {
-  id                String                     @id @default(cuid())
-  userId            String?                    @unique
-  vorname           String
-  nachname          String
-  email             String?
-  telefon           String?
-  mobil             String?
-  adresse           String?
-  plz               String?
-  ort               String?
-  geburtsdatum      DateTime?
-  eintrittsdatum    DateTime?
-  austrittsdatum    DateTime?
-  rolle             String                     @default("mitarbeiter")
-  fuehrerschein     String?
-  notfallkontakt    String?
-  notfalltelefon    String?
-  bankname          String?
-  iban              String?
-  stundenlohn       Float?
-  status            String                     @default("aktiv")
-  notizen           String?
-  vollkostenSatz    Float?
-  createdAt         DateTime                   @default(now())
-  updatedAt         DateTime                   @updatedAt
-  user              User?                      @relation(fields: [userId], references: [id])
-  gruppen           GruppeMitglied[]
-  saisonAnmeldungen SaisonAnmeldung[]
-  schulungen        MitarbeiterSchulung[]
-  stundeneintraege  Stundeneintrag[]
-  lohneintraege     Lohneintrag[]
-  vorschuesse       Vorschuss[]
-  abwesenheiten     Abwesenheit[]
-  lagerBewegungen   LagerBewegung[]
-  lohnabrechnungen  Lohnabrechnung[]
-  dokumente         Dokument[]
+// ========== TEAM / MITARBEITER ==========
+model TeamMember {
+  id            String   @id @default(cuid())
+  tenantId      String
+  userId        String?  @unique               // Verknüpfung zu User (optional für externe)
+  firstName     String
+  lastName      String
+  email         String?
+  phone         String?
+  mobile        String?
+  address       String?
+  zipCode       String?
+  city          String?
+  birthDate     DateTime?
+  hireDate      DateTime?
+  terminationDate DateTime?
+  role          String   @default("worker")    // team_lead, worker, seasonal, external
+  status        String   @default("active")    // active, inactive, on_leave
+  hourlyRate    Float?
+  fullCostRate  Float?                         // Vollkostenrechnung
+  notes         String?
+  emergencyContact      String?
+  emergencyPhone        String?
+  bankName      String?
+  iban          String?
+  metadata      Json?                          // Branchenspezifische Felder
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  user          User?    @relation(fields: [userId], references: [id])
+  teamGroups    TeamGroupMember[]
+  timeEntries   TimeEntry[]
+  absences      Absence[]
+  documents     Document[]  @relation("DocumentOwner")
+
+  @@index([tenantId])
+  @@index([tenantId, status])
 }
 
-model Saison {
-  id           String            @id @default(cuid())
-  name         String
-  typ          String            @default("standard")
-  status       String            @default("planung")
-  startDatum   DateTime?
-  endDatum     DateTime?
-  beschreibung String?
-  ziel         String?
-  createdAt    DateTime          @default(now())
-  updatedAt    DateTime          @updatedAt
-  anmeldungen      SaisonAnmeldung[]
-  dokumente        Dokument[]
-  gruppen          Gruppe[]
-  auftraege        Auftrag[]
-  lohnabrechnungen Lohnabrechnung[]
+// ========== TEAM-GRUPPEN ==========
+model TeamGroup {
+  id          String   @id @default(cuid())
+  tenantId    String
+  name        String
+  leaderId    String?                          // TeamMember ID
+  status      String   @default("active")
+  seasonId    String?                          // Optional: Saison-Zuordnung
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  season      Season?  @relation(fields: [seasonId], references: [id], onDelete: SetNull)
+  members     TeamGroupMember[]
+  projects    Project[]
+  tasks       Task[]
+
+  @@index([tenantId])
 }
 
-model Tenant {
-  id           String   @id @default(cuid())
-  name         String
-  slug         String   @unique
-  logo         String?
-  primaryColor String   @default("#2C3A1C")
-  domain       String?
-  createdAt    DateTime @default(now())
+model TeamGroupMember {
+  id           String     @id @default(cuid())
+  tenantId     String
+  groupId      String
+  memberId     String
+  role         String     @default("member")   // leader, member
+  group        TeamGroup  @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  member       TeamMember @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@unique([groupId, memberId])
+  @@index([tenantId])
 }
 
-model ActivityLog {
-  id         String   @id @default(cuid())
-  action     String
-  entityType String
-  entityId   String
-  entityName String
-  userId     String?
-  metadata   String?
-  createdAt  DateTime @default(now())
+// ========== PROJECT (Core-Model) ==========
+// Generisch: kann Auftrag, Projekt, Job, Baustelle etc. sein
+model Project {
+  id            String   @id @default(cuid())
+  tenantId      String
+  number        String?                        // Auto: PRJ-2026-0001
+  title         String
+  type          String                         // Konfigurierbar per Tenant (z.B. "planting", "maintenance")
+  status        String   @default("draft")     // draft, active, completed, cancelled
+  description   String?
+  priority      String   @default("normal")    // low, normal, high, urgent
+
+  // Kunde
+  customerName  String?
+  customerEmail String?
+  customerPhone String?
+  customerAddress String?
+
+  // Location
+  location      String?
+  address       String?
+  latitude      Float?
+  longitude     Float?
+  region        String?                        // Bundesland, Kanton, etc.
+
+  // Zeitplanung
+  startDate     DateTime?
+  endDate       DateTime?
+  deadline      DateTime?
+
+  // Zuordnung
+  teamGroupId   String?
+  seasonId      String?
+
+  // Berechnung
+  estimatedHours Float?
+  actualHours    Float?
+  estimatedCost  Float?
+  actualCost     Float?
+
+  notes         String?
+  metadata      Json?                          // Branchenspezifische Felder
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  teamGroup     TeamGroup? @relation(fields: [teamGroupId], references: [id], onDelete: SetNull)
+  season        Season?    @relation(fields: [seasonId], references: [id], onDelete: SetNull)
+  tasks         Task[]
+  timeEntries   TimeEntry[]
+  documents     Document[]
+  invoices      Invoice[]
+  logs          ProjectLog[]
+  dailyReports  DailyReport[]
+
+  @@unique([tenantId, number])
+  @@index([tenantId])
+  @@index([tenantId, status])
+  @@index([tenantId, type])
 }
 
-// AUFTRAG — Generisch für jede Branche
-model Auftrag {
-  id                String           @id @default(cuid())
-  titel             String
-  typ               String           // Serviceart (konfigurierbar)
-  status            String           @default("anfrage")
-  beschreibung      String?
-  standort          String?
-  bundesland        String?
-  kundenName        String?
-  kundenEmail       String?
-  kundenTelefon     String?
-  zeitraum          String?
-  notizen           String?
-  nummer            String?          @unique  // Auto-generiert: AU-YYYY-NNNN
-  saisonId          String?
-  gruppeId          String?
-  startDatum        DateTime?
-  endDatum          DateTime?
-  lat               Float?           // GPS
-  lng               Float?           // GPS
-  createdAt         DateTime         @default(now())
-  updatedAt         DateTime         @updatedAt
-  saison            Saison?          @relation(fields: [saisonId], references: [id], onDelete: SetNull)
-  gruppe            Gruppe?          @relation(fields: [gruppeId], references: [id], onDelete: SetNull)
-  dokumente          Dokument[]
-  protokolle         Tagesprotokoll[]
-  rechnungen         Rechnung[]
-  lagerBewegungen    LagerBewegung[]
-  maschineneinsaetze Maschineneinsatz[]
-  stundeneintraege   Stundeneintrag[]
-  logs               AuftragLog[]
-  angebote           Angebot[]
-}
-
-model AuftragLog {
+model ProjectLog {
   id        String   @id @default(cuid())
-  auftragId String
-  auftrag   Auftrag  @relation(fields: [auftragId], references: [id], onDelete: Cascade)
-  aktion    String
-  von       String?
-  nach      String?
+  tenantId  String
+  projectId String
+  action    String
+  fromValue String?
+  toValue   String?
   userId    String?
+  metadata  Json?
   createdAt DateTime @default(now())
+
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([projectId])
 }
 
-// GRUPPE (Teams)
-model Gruppe {
-  id                  String             @id @default(cuid())
-  name                String
-  saisonId            String?
-  gruppenfuehrerId    String?
-  status              String             @default("aktiv")
-  createdAt           DateTime           @default(now())
-  updatedAt           DateTime           @updatedAt
-  saison              Saison?            @relation(fields: [saisonId], references: [id], onDelete: SetNull)
-  auftraege           Auftrag[]
-  mitglieder          GruppeMitglied[]
-  maschineneinsaetze  Maschineneinsatz[]
-  wochenplaene        Wochenplan[]
-}
-
-model GruppeMitglied {
-  id            String      @id @default(cuid())
-  gruppeId      String
-  mitarbeiterId String
-  rolle         String      @default("mitarbeiter")
-  gruppe        Gruppe      @relation(fields: [gruppeId], references: [id], onDelete: Cascade)
-  mitarbeiter   Mitarbeiter @relation(fields: [mitarbeiterId], references: [id], onDelete: Cascade)
-
-  @@unique([gruppeId, mitarbeiterId])
-}
-
-model SaisonAnmeldung {
-  id            String      @id @default(cuid())
-  saisonId      String
-  mitarbeiterId String
-  status        String      @default("angemeldet")
-  notiz         String?
-  createdAt     DateTime    @default(now())
-  saison        Saison      @relation(fields: [saisonId], references: [id], onDelete: Cascade)
-  mitarbeiter   Mitarbeiter @relation(fields: [mitarbeiterId], references: [id], onDelete: Cascade)
-
-  @@unique([saisonId, mitarbeiterId])
-}
-
-// LAGER
-model LagerArtikel {
-  id             String          @id @default(cuid())
-  name           String
-  kategorie      String          @default("material")
-  einheit        String          @default("Stück")
-  bestand        Float           @default(0)
-  mindestbestand Float           @default(0)
-  lagerort       String?
-  artikelnummer  String?
-  einkaufspreis  Float?
-  verkaufspreis  Float?
-  createdAt      DateTime        @default(now())
-  updatedAt      DateTime        @updatedAt
-  bewegungen     LagerBewegung[]
-}
-
-model LagerBewegung {
-  id            String       @id @default(cuid())
-  artikelId     String
-  typ           String
-  menge         Float
-  referenz      String?
-  notiz         String?
-  auftragId     String?
-  mitarbeiterId String?
-  createdAt     DateTime     @default(now())
-  artikel       LagerArtikel @relation(fields: [artikelId], references: [id], onDelete: Cascade)
-  auftrag       Auftrag?     @relation(fields: [auftragId], references: [id], onDelete: SetNull)
-  mitarbeiter   Mitarbeiter? @relation(fields: [mitarbeiterId], references: [id], onDelete: SetNull)
-}
-
-// FUHRPARK
-model Fahrzeug {
-  id                String             @id @default(cuid())
-  typ               String
-  bezeichnung       String
-  kennzeichen       String?
-  baujahr           Int?
-  status            String             @default("verfuegbar")
-  tuvDatum          DateTime?
-  naechsteWartung   DateTime?
-  notizen           String?
-  stundenBonus      Float?             @default(0)
-  bonusBeschreibung String?
-  createdAt         DateTime           @default(now())
-  updatedAt         DateTime           @updatedAt
-  einsaetze         Maschineneinsatz[]
-}
-
-model Geraet {
-  id              String    @id @default(cuid())
-  typ             String
-  bezeichnung     String
-  seriennummer    String?
-  status          String    @default("verfuegbar")
-  naechsteWartung DateTime?
-  notizen         String?
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
-}
-
-model Wartung {
+// ========== TASK (Core-Model) ==========
+model Task {
   id           String   @id @default(cuid())
-  typ          String
-  referenzId   String
-  beschreibung String
-  datum        DateTime
-  kosten       Float?
-  erledigt     Boolean  @default(false)
+  tenantId     String
+  projectId    String?
+  assigneeId   String?                         // User ID
+  teamGroupId  String?
+
+  title        String
+  description  String?
+  type         String   @default("general")    // Konfigurierbar
+  status       String   @default("todo")       // todo, in_progress, done, cancelled
+  priority     String   @default("normal")     // low, normal, high, urgent
+
+  dueDate      DateTime?
+  startDate    DateTime?
+  completedAt  DateTime?
+
+  estimatedHours Float?
+  actualHours    Float?
+
+  // Checklist (optional)
+  checklist    Json?                           // [{id, text, done}]
+
+  position     Int      @default(0)            // Für Sortierung
+  metadata     Json?
+
   createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relations
+  project      Project?   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  assignee     User?      @relation("TaskAssignee", fields: [assigneeId], references: [id], onDelete: SetNull)
+  teamGroup    TeamGroup? @relation(fields: [teamGroupId], references: [id], onDelete: SetNull)
+  comments     Comment[]
+  timeEntries  TimeEntry[]
+
+  @@index([tenantId])
+  @@index([tenantId, status])
+  @@index([projectId])
+  @@index([assigneeId])
 }
 
-// LOHN & FINANZEN
-model Lohneintrag {
-  id            String      @id @default(cuid())
-  mitarbeiterId String
-  saisonId      String?
-  monat         Int
-  jahr          Int
-  stunden       Float       @default(0)
-  stundenlohn   Float
-  brutto        Float       @default(0)
-  netto         Float?
-  ausgezahlt    Boolean     @default(false)
-  ausgezahltAm  DateTime?
-  notizen       String?
-  createdAt     DateTime    @default(now())
-  mitarbeiter   Mitarbeiter @relation(fields: [mitarbeiterId], references: [id], onDelete: Cascade)
-}
+// ========== TIME ENTRY (Core-Model) ==========
+model TimeEntry {
+  id           String   @id @default(cuid())
+  tenantId     String
+  userId       String?                         // User der einträgt
+  memberId     String?                         // TeamMember (kann ohne User sein)
+  projectId    String?
+  taskId       String?
 
-model Vorschuss {
-  id                   String      @id @default(cuid())
-  mitarbeiterId        String
-  betrag               Float
-  datum                DateTime    @default(now())
-  grund                String?
-  genehmigt            Boolean     @default(false)
-  zurueckgezahlt       Boolean     @default(false)
-  individualBonus      Float?      @default(0)
-  individualBonusGrund String?
-  createdAt            DateTime    @default(now())
-  mitarbeiter          Mitarbeiter @relation(fields: [mitarbeiterId], references: [id], onDelete: Cascade)
-}
+  date         DateTime
+  hours        Float
+  type         String   @default("work")       // work, travel, break, overtime
+  description  String?
 
-// STUNDEN & ABWESENHEIT
-model Stundeneintrag {
-  id                String      @id @default(cuid())
-  mitarbeiterId     String
-  datum             DateTime
-  stunden           Float
-  auftragId         String?
-  typ               String      @default("arbeit")
-  notiz             String?
-  genehmigt         Boolean     @default(false)
-  stundenlohn       Float?
-  maschinenzuschlag Float?
-  createdAt         DateTime    @default(now())
-  mitarbeiter       Mitarbeiter @relation(fields: [mitarbeiterId], references: [id], onDelete: Cascade)
-  auftrag           Auftrag?    @relation(fields: [auftragId], references: [id], onDelete: SetNull)
-}
-
-model Abwesenheit {
-  id            String      @id @default(cuid())
-  mitarbeiterId String
-  von           DateTime
-  bis           DateTime
-  typ           String
-  genehmigt     Boolean     @default(false)
-  notiz         String?
-  createdAt     DateTime    @default(now())
-  mitarbeiter   Mitarbeiter @relation(fields: [mitarbeiterId], references: [id], onDelete: Cascade)
-}
-
-// SCHULUNGEN (optional für manche Branchen)
-model Schulung {
-  id            String                @id @default(cuid())
-  titel         String
-  typ           String                @default("pflicht")
-  beschreibung  String?
-  datum         DateTime?
-  ort           String?
-  maxTeilnehmer Int?
-  status        String                @default("geplant")
-  createdAt     DateTime              @default(now())
-  teilnehmer    MitarbeiterSchulung[]
-}
-
-model MitarbeiterSchulung {
-  id              String      @id @default(cuid())
-  mitarbeiterId   String
-  schulungId      String
-  status          String      @default("angemeldet")
-  abgeschlossenAm DateTime?
-  mitarbeiter     Mitarbeiter @relation(fields: [mitarbeiterId], references: [id], onDelete: Cascade)
-  schulung        Schulung    @relation(fields: [schulungId], references: [id], onDelete: Cascade)
-
-  @@unique([mitarbeiterId, schulungId])
-}
-
-// DOKUMENTE
-model Dokument {
-  id             String   @id @default(cuid())
-  name           String
-  typ            String   @default("sonstiges")
-  url            String?
-  nextcloudPath  String?
-  auftragId      String?
-  saisonId       String?
-  hochgeladenVon String?
-  mitarbeiterId  String?
-  mitarbeiter    Mitarbeiter? @relation(fields: [mitarbeiterId], references: [id])
-  kategorie      String?
-  jahr           Int?
-  ablaufDatum    DateTime?
-  vertraulich    Boolean   @default(false)
-  groesse        Int?
-  mimeType       String?
-  beschreibung   String?
-  createdAt      DateTime @default(now())
-  auftrag        Auftrag? @relation(fields: [auftragId], references: [id], onDelete: SetNull)
-  saison         Saison?  @relation(fields: [saisonId], references: [id], onDelete: SetNull)
-}
-
-// TAGESPROTOKOLL — Generisch
-model Tagesprotokoll {
-  id                    String    @id @default(cuid())
-  auftragId             String
-  auftrag               Auftrag   @relation(fields: [auftragId], references: [id], onDelete: Cascade)
-  gruppeId              String?
-  datum                 DateTime
-  ersteller             String    @default("")
-  erstellerId           String?
-
-  arbeitsbeginn         String?
-  arbeitsende           String?
-  pauseMinuten          Int?      @default(0)
-
-  // Leistung
-  leistungMenge         Float?    // Generisch: kann ha, Stück, lfm etc. sein
-  leistungEinheit       String?   // "ha", "Stück", "lfm", "pauschal"
-  abschnitt             String?
-
-  // Witterung
-  witterung             String?
-  temperaturMin         Int?
-  temperaturMax         Int?
+  hourlyRate   Float?                          // Übernommen von TeamMember oder überschrieben
+  bonus        Float?                          // Zuschläge (Maschinen, Nacht, etc.)
+  approved     Boolean  @default(false)
+  approvedAt   DateTime?
+  approvedBy   String?
 
   // GPS
-  gpsStartLat           Float?
-  gpsStartLon           Float?
-  gpsEndLat             Float?
-  gpsEndLon             Float?
+  startLat     Float?
+  startLng     Float?
+  endLat       Float?
+  endLng       Float?
+
+  metadata     Json?
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relations
+  user         User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
+  member       TeamMember? @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  project      Project?    @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  task         Task?       @relation(fields: [taskId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId])
+  @@index([tenantId, date])
+  @@index([memberId])
+  @@index([projectId])
+}
+
+// ========== INVOICE (Core-Model) ==========
+model Invoice {
+  id             String   @id @default(cuid())
+  tenantId       String
+  projectId      String?
+  number         String                        // RE-2026-0001
+  status         String   @default("draft")    // draft, sent, paid, overdue, cancelled
+  
+  invoiceDate    DateTime @default(now())
+  dueDate        DateTime?
+  paidAt         DateTime?
+
+  subtotal       Float                         // Netto
+  taxRate        Float    @default(19)         // MwSt-Satz
+  taxAmount      Float                         // MwSt-Betrag
+  discount       Float    @default(0)          // Rabatt
+  total          Float                         // Brutto
+
+  // Kunde (kann von Project übernommen werden)
+  customerName   String?
+  customerEmail  String?
+  customerAddress String?
+
+  paymentTerms   String?  @default("30 Tage netto")
+  notes          String?
+  pdfUrl         String?
+
+  metadata       Json?
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  // Relations
+  project        Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  items          InvoiceItem[]
+
+  @@unique([tenantId, number])
+  @@index([tenantId])
+  @@index([tenantId, status])
+}
+
+model InvoiceItem {
+  id           String   @id @default(cuid())
+  tenantId     String
+  invoiceId    String
+  description  String
+  quantity     Float
+  unit         String   @default("Stück")
+  unitPrice    Float
+  total        Float
+  type         String   @default("service")    // service, material, other
+  position     Int      @default(0)
+  createdAt    DateTime @default(now())
+
+  invoice      Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  @@index([invoiceId])
+}
+
+// ========== DOCUMENT (Core-Model) ==========
+model Document {
+  id           String   @id @default(cuid())
+  tenantId     String
+  projectId    String?
+  ownerId      String?                         // TeamMember ID
+  createdById  String?                         // User ID
+
+  name         String
+  type         String   @default("other")      // contract, report, photo, invoice, certificate, other
+  category     String?
+  description  String?
+  
+  url          String?                         // S3, Nextcloud, etc.
+  storagePath  String?                         // Interner Pfad
+  mimeType     String?
+  size         Int?                            // Bytes
+  
+  expiresAt    DateTime?                       // Für Zertifikate, Lizenzen
+  confidential Boolean  @default(false)
+  
+  year         Int?
+  metadata     Json?
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relations
+  project      Project?    @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  owner        TeamMember? @relation("DocumentOwner", fields: [ownerId], references: [id], onDelete: SetNull)
+  createdBy    User?       @relation("DocumentCreator", fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@index([tenantId])
+  @@index([tenantId, type])
+  @@index([projectId])
+}
+
+// ========== SEASON (optional, aber für viele Branchen nützlich) ==========
+model Season {
+  id          String   @id @default(cuid())
+  tenantId    String
+  name        String                           // "Pflanzsaison 2026" / "Sommer 2026"
+  type        String   @default("standard")    // standard, special
+  status      String   @default("planning")    // planning, active, completed
+  startDate   DateTime?
+  endDate     DateTime?
+  description String?
+  targets     String?                          // Ziele
+  metadata    Json?
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  projects    Project[]
+  teamGroups  TeamGroup[]
+
+  @@index([tenantId])
+  @@index([tenantId, status])
+}
+
+// ========== DAILY REPORT (Tagesprotokoll) ==========
+model DailyReport {
+  id           String   @id @default(cuid())
+  tenantId     String
+  projectId    String
+  createdById  String?
+  teamGroupId  String?
+
+  date         DateTime
+  status       String   @default("draft")      // draft, submitted, approved
+
+  // Arbeitszeit
+  startTime    String?                         // "07:00"
+  endTime      String?                         // "16:00"
+  breakMinutes Int      @default(0)
+
+  // Leistung (generisch)
+  outputAmount Float?                          // Menge
+  outputUnit   String?                         // ha, Stück, lfm, m², etc.
+  section      String?                         // Abschnitt, Bereich
+
+  // Witterung
+  weather      String?
+  tempMin      Int?
+  tempMax      Int?
+
+  // GPS
+  gpsStartLat  Float?
+  gpsStartLng  Float?
+  gpsEndLat    Float?
+  gpsEndLng    Float?
 
   // Team
-  mitarbeiterAnzahl     Int?
-  mitarbeiterListe      Json?
+  teamCount    Int?
+  teamMembers  Json?                           // [{id, name, hours}]
 
-  // Material & Maschinen
-  materialVerbraucht    Json?
-  maschinenEinsatz      Json?
+  // Material & Geräte
+  materialsUsed Json?                          // [{id, name, quantity}]
+  equipmentUsed Json?                          // [{id, name, hours}]
 
   // Protokoll
-  bericht               String    @default("")
-  besonderheiten        String?
-  naechsteSchritte      String?
-  kundeAnwesend         Boolean?  @default(false)
-  kundeNotiz            String?
+  summary      String   @default("")
+  issues       String?
+  nextSteps    String?
+  customerPresent Boolean @default(false)
+  customerNotes String?
 
   // Dokumentation
-  fotos                 Json?
-  unterschriftGf        String?
+  photos       Json?                           // [{url, caption}]
+  signature    String?                         // Base64 oder URL
 
-  status                String    @default("entwurf")
-  eingereichtAm         DateTime?
+  submittedAt  DateTime?
+  approvedAt   DateTime?
+  approvedBy   String?
 
-  createdAt             DateTime  @default(now())
-  updatedAt             DateTime  @default(now()) @updatedAt
+  metadata     Json?
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  project      Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([tenantId, date])
+  @@index([projectId])
 }
 
-// KONTAKTE
-model Kontakt {
+// ========== COMMENT ==========
+model Comment {
   id        String   @id @default(cuid())
-  name      String
-  typ       String   @default("sonstig")
-  telefon   String?
-  email     String?
-  firma     String?
-  adresse   String?
-  notizen   String?
+  tenantId  String
+  taskId    String?
+  userId    String
+  content   String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  task      Task?    @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([taskId])
 }
 
-// MASCHINENEINSATZ
-model Maschineneinsatz {
-  id          String    @id @default(cuid())
-  fahrzeugId  String
-  fahrzeug    Fahrzeug  @relation(fields: [fahrzeugId], references: [id], onDelete: Cascade)
-  gruppeId    String?
-  gruppe      Gruppe?   @relation(fields: [gruppeId], references: [id], onDelete: SetNull)
-  auftragId   String?
-  auftrag     Auftrag?  @relation(fields: [auftragId], references: [id], onDelete: SetNull)
-  vonDatum    DateTime
-  bisDatum    DateTime?
-  zweck       String?
-  stundensatz Float?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+// ========== ABSENCE ==========
+model Absence {
+  id        String   @id @default(cuid())
+  tenantId  String
+  memberId  String
+  type      String                             // vacation, sick, unpaid, training
+  startDate DateTime
+  endDate   DateTime
+  approved  Boolean  @default(false)
+  approvedBy String?
+  notes     String?
+  createdAt DateTime @default(now())
+
+  member    TeamMember @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([memberId])
 }
 
-// RECHNUNGEN
-model Rechnung {
-  id                String             @id @default(cuid())
-  auftragId         String?
-  nummer            String             @unique
-  betrag            Float
-  mwst              Float              @default(19)
-  status            String             @default("offen")
-  rechnungsDatum    DateTime           @default(now())
-  faelligAm         DateTime?
-  pdfUrl            String?
-  notizen           String?
-  rabatt            Float?             @default(0)
-  rabattBetrag      Float?             @default(0)
-  rabattGrund       String?
-  nettoBetrag       Float?
-  bruttoBetrag      Float?
-  zahlungsBedingung String?            @default("30 Tage netto")
-  createdAt         DateTime           @default(now())
-  updatedAt         DateTime           @updatedAt
-  auftrag           Auftrag?           @relation(fields: [auftragId], references: [id], onDelete: SetNull)
-  positionen        RechnungPosition[]
+// ========== INVENTORY (Lager) ==========
+model InventoryItem {
+  id            String   @id @default(cuid())
+  tenantId      String
+  name          String
+  sku           String?                        // Artikelnummer
+  category      String   @default("material")
+  unit          String   @default("piece")     // piece, kg, liter, meter
+  quantity      Float    @default(0)
+  minQuantity   Float    @default(0)           // Mindestbestand
+  location      String?                        // Lagerort
+  purchasePrice Float?
+  salePrice     Float?
+  metadata      Json?
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  movements     InventoryMovement[]
+
+  @@unique([tenantId, sku])
+  @@index([tenantId])
+  @@index([tenantId, category])
 }
 
-model RechnungPosition {
+model InventoryMovement {
+  id        String   @id @default(cuid())
+  tenantId  String
+  itemId    String
+  type      String                             // in, out, adjust
+  quantity  Float
+  reference String?                            // Projekt-ID, Lieferant, etc.
+  notes     String?
+  createdBy String?
+  createdAt DateTime @default(now())
+
+  item      InventoryItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([itemId])
+}
+
+// ========== EQUIPMENT (Fuhrpark & Geräte) ==========
+model Equipment {
   id              String   @id @default(cuid())
-  rechnungId      String
-  rechnung        Rechnung @relation(fields: [rechnungId], references: [id], onDelete: Cascade)
-  beschreibung    String
-  menge           Float
-  einheit         String
-  preisProEinheit Float
-  gesamt          Float
-  protokollId     String?
-  typ             String   @default("leistung")
+  tenantId        String
+  type            String                       // vehicle, tool, machine
+  name            String
+  identifier      String?                      // Kennzeichen, Seriennummer
+  manufacturer    String?
+  model           String?
+  year            Int?
+  status          String   @default("available") // available, in_use, maintenance, retired
+  nextMaintenance DateTime?
+  hourlyRate      Float?                       // Für Kostenzurechnung
+  hourlySurcharge Float?                       // Zuschlag für Mitarbeiter
+  notes           String?
+  metadata        Json?
+
   createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  maintenanceRecords MaintenanceRecord[]
+  assignments        EquipmentAssignment[]
+
+  @@index([tenantId])
+  @@index([tenantId, type])
+  @@index([tenantId, status])
 }
 
-// LOHNABRECHNUNG
-model Lohnabrechnung {
-  id            String      @id @default(cuid())
-  mitarbeiterId String
-  mitarbeiter   Mitarbeiter @relation(fields: [mitarbeiterId], references: [id])
-  saisonId      String?
-  saison        Saison?     @relation(fields: [saisonId], references: [id])
-  zeitraumVon   DateTime
-  zeitraumBis   DateTime
-  stunden       Float
-  bruttoLohn    Float
-  gesamtLohn    Float
-  maschinenBonus Float      @default(0)
-  vorschuesse   Float       @default(0)
-  auszahlung    Float
-  status        String      @default("erstellt")
-  notizen       String?
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
+model MaintenanceRecord {
+  id          String   @id @default(cuid())
+  tenantId    String
+  equipmentId String
+  type        String                           // inspection, repair, service
+  description String
+  date        DateTime
+  cost        Float?
+  completed   Boolean  @default(false)
+  notes       String?
+  createdAt   DateTime @default(now())
+
+  equipment   Equipment @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([equipmentId])
 }
 
-// WOCHENPLAN
-model Wochenplan {
-  id              String              @id @default(cuid())
-  kalenderwoche   Int
-  jahr            Int
-  gruppeId        String?
-  gruppe          Gruppe?             @relation(fields: [gruppeId], references: [id])
-  erstelltVon     String?
-  dienstleistung  String?
-  gruppenleiter   String?
-  status          String              @default("entwurf")
-  notizen         String?
-  createdAt       DateTime            @default(now())
-  updatedAt       DateTime            @updatedAt
-  positionen      WochenplanPosition[]
+model EquipmentAssignment {
+  id          String   @id @default(cuid())
+  tenantId    String
+  equipmentId String
+  projectId   String?
+  teamGroupId String?
+  startDate   DateTime
+  endDate     DateTime?
+  purpose     String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
-  @@unique([kalenderwoche, jahr, gruppeId])
+  equipment   Equipment @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([equipmentId])
 }
 
-model WochenplanPosition {
-  id                  String    @id @default(cuid())
-  wochenplanId        String
-  wochenplan          Wochenplan @relation(fields: [wochenplanId], references: [id], onDelete: Cascade)
-  dienstleistungstyp  String
-  tag                 Int?
-  datum               DateTime?
-  auftragId           String?
-  aufgabe             String?
-  einheit             String?
-  erledigt            Boolean   @default(false)
-  status              String    @default("geplant")
-  notizen             String?
-  standort            String?
-  gpsPosition         String?
-  treffpunkt          String?
-  createdAt           DateTime  @default(now())
-  updatedAt           DateTime  @updatedAt
+// ========== CONTACT ==========
+model Contact {
+  id        String   @id @default(cuid())
+  tenantId  String
+  type      String   @default("other")         // customer, supplier, authority, partner, other
+  name      String
+  company   String?
+  email     String?
+  phone     String?
+  mobile    String?
+  address   String?
+  notes     String?
+  metadata  Json?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([tenantId])
+  @@index([tenantId, type])
 }
 
-// SYSTEM-KONFIGURATION
+// ========== ACTIVITY LOG ==========
+model ActivityLog {
+  id         String   @id @default(cuid())
+  tenantId   String
+  userId     String?
+  action     String                            // create, update, delete, login, etc.
+  entityType String                            // Project, Task, Invoice, etc.
+  entityId   String
+  entityName String?
+  changes    Json?                             // {field: {old, new}}
+  ipAddress  String?
+  userAgent  String?
+  createdAt  DateTime @default(now())
+
+  user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId])
+  @@index([tenantId, entityType])
+  @@index([tenantId, createdAt])
+}
+
+// ========== SYSTEM CONFIG ==========
 model SystemConfig {
   id        String   @id @default(cuid())
-  key       String   @unique
+  tenantId  String?                            // null = global
+  key       String
   value     String
   updatedAt DateTime @updatedAt
+
+  @@unique([tenantId, key])
 }
 
-// ANGEBOTE
-model Angebot {
-  id                String    @id @default(cuid())
-  nummer            String?   @unique
-  auftragId         String?
-  auftrag           Auftrag?  @relation(fields: [auftragId], references: [id])
-  kundenName        String?
-  kundenEmail       String?
-  gesamtpreis       Float?
-  beschreibung      String?
-  status            String    @default("entwurf")
-  gueltigBis        DateTime?
-  notizen           String?
-  createdById       String?
-  budgetKunde       Float?
-  kalkulationsModus String?
-  kalkulationsDetails String?
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
+// ========== WEBHOOK (für Integrationen) ==========
+model Webhook {
+  id        String   @id @default(cuid())
+  tenantId  String
+  name      String
+  url       String
+  events    String[]                           // ["project.created", "invoice.paid"]
+  secret    String?
+  active    Boolean  @default(true)
+  lastError String?
+  lastSentAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([tenantId])
 }
