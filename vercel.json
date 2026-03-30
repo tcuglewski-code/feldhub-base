@@ -11,6 +11,10 @@
     {
       "path": "/api/cron/monatsbericht",
       "schedule": "0 7 1 * *"
+    },
+    {
+      "path": "/api/cron/upselling-check",
+      "schedule": "0 9 * * *"
     }
   ]
 }
