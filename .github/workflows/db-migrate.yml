@@ -1,0 +1,122 @@
+# Database Migration Workflow
+# Trigger: Manuell (workflow_dispatch)
+#
+# Führt Prisma Migrationen auf der Neon-Datenbank aus.
+# VORSICHT: Nur in kontrollierten Situationen verwenden!
+#
+# Benötigte GitHub Secrets:
+# - DATABASE_URL: Neon PostgreSQL Connection String
+#   Format: postgresql://user:pass@host/db?sslmode=require
+#
+# Verwendung:
+# 1. GitHub Actions Tab öffnen
+# 2. "Database Migration" Workflow auswählen
+# 3. "Run workflow" klicken
+# 4. Migration-Modus wählen:
+#    - push: Direkt pushen (für Entwicklung)
+#    - deploy: Production Migration (empfohlen)
+#    - reset: Datenbank zurücksetzen (GEFÄHRLICH!)
+
+name: Database Migration
+
+on:
+  workflow_dispatch:
+    inputs:
+      migration_mode:
+        description: 'Migration Mode'
+        required: true
+        default: 'push'
+        type: choice
+        options:
+          - push      # prisma db push (für Development)
+          - deploy    # prisma migrate deploy (für Production)
+          - reset     # prisma migrate reset (GEFÄHRLICH!)
+      
+      confirm_destructive:
+        description: 'Bestätigung für destructive Operationen (tippe CONFIRM)'
+        required: false
+        type: string
+
+jobs:
+  migrate:
+    name: Run Migration
+    runs-on: ubuntu-latest
+    
+    # Schutz vor versehentlichem Reset
+    environment: 
+      name: ${{ inputs.migration_mode == 'reset' && 'production' || 'default' }}
+    
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+    
+    steps:
+      - name: Validate Inputs
+        run: |
+          if [ "${{ inputs.migration_mode }}" == "reset" ]; then
+            if [ "${{ inputs.confirm_destructive }}" != "CONFIRM" ]; then
+              echo "❌ Reset erfordert Bestätigung: tippe 'CONFIRM' in das Bestätigungs-Feld"
+              exit 1
+            fi
+            echo "⚠️ WARNUNG: Datenbank wird zurückgesetzt!"
+          fi
+
+      - name: Check Secrets
+        run: |
+          if [ -z "$DATABASE_URL" ]; then
+            echo "❌ DATABASE_URL Secret ist nicht gesetzt!"
+            echo "Gehe zu Repository Settings → Secrets → Actions → New repository secret"
+            exit 1
+          fi
+          echo "✅ DATABASE_URL ist konfiguriert"
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Generate Prisma Client
+        run: npx prisma generate
+
+      - name: Validate Schema
+        run: npx prisma validate
+
+      - name: Run Migration (Push)
+        if: inputs.migration_mode == 'push'
+        run: |
+          echo "🔄 Running: prisma db push"
+          npx prisma db push --accept-data-loss
+          echo "✅ Database schema pushed successfully"
+
+      - name: Run Migration (Deploy)
+        if: inputs.migration_mode == 'deploy'
+        run: |
+          echo "🔄 Running: prisma migrate deploy"
+          npx prisma migrate deploy
+          echo "✅ Migrations deployed successfully"
+
+      - name: Run Migration (Reset)
+        if: inputs.migration_mode == 'reset'
+        run: |
+          echo "⚠️ WARNUNG: Datenbank wird KOMPLETT zurückgesetzt!"
+          echo "🔄 Running: prisma migrate reset --force"
+          npx prisma migrate reset --force
+          echo "✅ Database reset complete"
+
+      - name: Output Summary
+        run: |
+          echo "### 🗄️ Database Migration Complete" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Mode:** ${{ inputs.migration_mode }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Timestamp:** $(date -u +"%Y-%m-%d %H:%M:%S UTC")" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "#### Schema Status" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          npx prisma migrate status 2>&1 || echo "No migrations found" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY

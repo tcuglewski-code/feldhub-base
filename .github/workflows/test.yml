@@ -1,0 +1,137 @@
+# CI Pipeline: TypeScript Check + Lint + Build
+# Trigger: Push und Pull Requests auf main/develop
+#
+# Führt folgende Checks aus:
+# 1. TypeScript Compilation (tsc --noEmit)
+# 2. ESLint
+# 3. Build Check (next build)
+# 4. Prisma Generate (Schema-Validierung)
+
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+  pull_request:
+    branches:
+      - main
+      - develop
+
+jobs:
+  lint-and-typecheck:
+    name: Lint & TypeScript Check
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Generate Prisma Client
+        run: npx prisma generate
+
+      - name: TypeScript Check
+        run: npx tsc --noEmit
+        continue-on-error: false
+
+      - name: ESLint
+        run: npm run lint
+        continue-on-error: true
+
+  build:
+    name: Build Check
+    runs-on: ubuntu-latest
+    needs: lint-and-typecheck
+    
+    # Mock Environment Variables für Build
+    env:
+      DATABASE_URL: "postgresql://mock:mock@localhost:5432/mock"
+      NEXTAUTH_SECRET: "mock-secret-for-ci-build-only"
+      NEXTAUTH_URL: "http://localhost:3000"
+      TENANT_ID: "demo"
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Generate Prisma Client
+        run: npx prisma generate
+
+      - name: Build
+        run: npm run build
+
+      - name: Upload Build Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-output
+          path: .next/
+          retention-days: 1
+
+  # Optional: Unit Tests (wenn vorhanden)
+  # test:
+  #   name: Unit Tests
+  #   runs-on: ubuntu-latest
+  #   needs: lint-and-typecheck
+  #   
+  #   steps:
+  #     - name: Checkout
+  #       uses: actions/checkout@v4
+  #
+  #     - name: Setup Node.js
+  #       uses: actions/setup-node@v4
+  #       with:
+  #         node-version: '22'
+  #         cache: 'npm'
+  #
+  #     - name: Install Dependencies
+  #       run: npm ci
+  #
+  #     - name: Run Tests
+  #       run: npm test
+
+  summary:
+    name: CI Summary
+    runs-on: ubuntu-latest
+    needs: [lint-and-typecheck, build]
+    if: always()
+    
+    steps:
+      - name: Check Results
+        run: |
+          echo "### CI Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          if [ "${{ needs.lint-and-typecheck.result }}" == "success" ]; then
+            echo "✅ **Lint & TypeScript:** Passed" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ **Lint & TypeScript:** Failed" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          if [ "${{ needs.build.result }}" == "success" ]; then
+            echo "✅ **Build:** Passed" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ **Build:** Failed" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Branch:** ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY

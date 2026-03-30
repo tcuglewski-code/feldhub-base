@@ -151,6 +151,57 @@ appfabrik-base/
 
 ---
 
+## 🔄 CI/CD Pipeline
+
+Das Repository enthält GitHub Actions für automatisierte Deployments.
+
+### Workflows
+
+| Workflow | Trigger | Beschreibung |
+|----------|---------|--------------|
+| **Deploy** | Push auf `main` | Vercel Production Deployment |
+| **CI** | Push/PR auf `main`, `develop` | TypeScript + Lint + Build Check |
+| **DB Migration** | Manuell | Prisma Migrationen auf Neon |
+
+### GitHub Secrets (erforderlich)
+
+Gehe zu **Repository Settings → Secrets → Actions** und füge hinzu:
+
+| Secret | Beschreibung | Wo finden? |
+|--------|--------------|------------|
+| `VERCEL_TOKEN` | Vercel API Token | [vercel.com/account/tokens](https://vercel.com/account/tokens) |
+| `VERCEL_ORG_ID` | Organisation/Account ID | `.vercel/project.json` nach `vercel link` |
+| `VERCEL_PROJECT_ID` | Projekt ID | `.vercel/project.json` nach `vercel link` |
+| `DATABASE_URL` | Neon PostgreSQL Connection | Neon Dashboard → Connection Details |
+
+### Setup
+
+```bash
+# 1. Vercel CLI installieren & verlinken
+npm i -g vercel
+vercel login
+vercel link
+
+# 2. IDs aus .vercel/project.json kopieren
+cat .vercel/project.json
+
+# 3. Vercel Token generieren
+# → vercel.com/account/tokens → Create Token
+
+# 4. Secrets in GitHub hinzufügen
+# → Repository Settings → Secrets → Actions → New repository secret
+```
+
+### Manuelles DB-Migration
+
+1. GitHub Actions → **Database Migration** → **Run workflow**
+2. Wähle Migration-Modus:
+   - `push` — Für Development (prisma db push)
+   - `deploy` — Für Production (prisma migrate deploy)
+   - `reset` — Datenbank zurücksetzen (⚠️ GEFÄHRLICH!)
+
+---
+
 ## 📄 Lizenz
 
 Proprietär — © 2026 AppFabrik
