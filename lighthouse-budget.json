@@ -1,0 +1,107 @@
+[
+  {
+    "path": "/*",
+    "timings": [
+      {
+        "metric": "largest-contentful-paint",
+        "budget": 2500,
+        "tolerance": 500
+      },
+      {
+        "metric": "first-contentful-paint",
+        "budget": 1800,
+        "tolerance": 300
+      },
+      {
+        "metric": "interactive",
+        "budget": 3500,
+        "tolerance": 500
+      },
+      {
+        "metric": "total-blocking-time",
+        "budget": 200,
+        "tolerance": 100
+      },
+      {
+        "metric": "cumulative-layout-shift",
+        "budget": 0.1,
+        "tolerance": 0.05
+      }
+    ],
+    "resourceSizes": [
+      {
+        "resourceType": "script",
+        "budget": 300
+      },
+      {
+        "resourceType": "stylesheet",
+        "budget": 50
+      },
+      {
+        "resourceType": "image",
+        "budget": 500
+      },
+      {
+        "resourceType": "font",
+        "budget": 150
+      },
+      {
+        "resourceType": "total",
+        "budget": 1000
+      }
+    ],
+    "resourceCounts": [
+      {
+        "resourceType": "script",
+        "budget": 15
+      },
+      {
+        "resourceType": "stylesheet",
+        "budget": 5
+      },
+      {
+        "resourceType": "third-party",
+        "budget": 10
+      },
+      {
+        "resourceType": "total",
+        "budget": 50
+      }
+    ]
+  },
+  {
+    "path": "/dashboard*",
+    "timings": [
+      {
+        "metric": "largest-contentful-paint",
+        "budget": 3000,
+        "tolerance": 500
+      },
+      {
+        "metric": "first-contentful-paint",
+        "budget": 2000,
+        "tolerance": 500
+      },
+      {
+        "metric": "interactive",
+        "budget": 5000,
+        "tolerance": 1000
+      },
+      {
+        "metric": "total-blocking-time",
+        "budget": 300,
+        "tolerance": 100
+      }
+    ],
+    "resourceSizes": [
+      {
+        "resourceType": "script",
+        "budget": 500
+      },
+      {
+        "resourceType": "total",
+        "budget": 1500
+      }
+    ]
+  }
+]
