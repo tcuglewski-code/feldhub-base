@@ -1,0 +1,94 @@
+name: Uptime & Health Monitoring
+
+on:
+  schedule:
+    # Alle 30 Minuten (GitHub Actions Minimum)
+    - cron: "*/30 * * * *"
+  workflow_dispatch:
+    inputs:
+      tenant_id:
+        description: "Tenant ID (leer = alle)"
+        required: false
+        default: ""
+
+jobs:
+  monitor:
+    name: Monitor ${{ matrix.tenant }}
+    runs-on: ubuntu-latest
+    continue-on-error: true  # Einen Tenant nicht die anderen blockieren lassen
+    strategy:
+      fail-fast: false
+      matrix:
+        tenant:
+          - koch-aufforstung
+          # Neue Tenants hier hinzufügen:
+          # - muster-betrieb
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run Uptime Check
+        env:
+          TENANT_ID: ${{ matrix.tenant }}
+          MC_API_KEY: ${{ secrets.MC_API_KEY }}
+          MC_BASE_URL: "https://mission-control-tawny-omega.vercel.app"
+          ALERT_THRESHOLD_MS: "3000"
+          # Tenant-spezifische URLs (optional via Secrets)
+          FRONTEND_URL: ${{ secrets[format('FRONTEND_URL_{0}', matrix.tenant)] }}
+          API_URL: ${{ secrets[format('API_URL_{0}', matrix.tenant)] }}
+          HEALTH_URL: ${{ secrets[format('HEALTH_URL_{0}', matrix.tenant)] }}
+        run: |
+          chmod +x scripts/monitor-uptime.sh
+          bash scripts/monitor-uptime.sh
+
+      - name: Log Status to Mission Control
+        if: always()
+        env:
+          TENANT_ID: ${{ matrix.tenant }}
+          MC_API_KEY: ${{ secrets.MC_API_KEY }}
+          JOB_STATUS: ${{ job.status }}
+        run: |
+          STATUS_EMOJI="✅"
+          [[ "$JOB_STATUS" != "success" ]] && STATUS_EMOJI="❌"
+          
+          curl -s -X POST \
+            -H "Content-Type: application/json" \
+            -H "x-api-key: ${MC_API_KEY}" \
+            -d "{
+              \"tenantId\": \"${TENANT_ID}\",
+              \"status\": \"${JOB_STATUS}\",
+              \"emoji\": \"${STATUS_EMOJI}\",
+              \"timestamp\": \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\",
+              \"source\": \"github-actions-monitoring\"
+            }" \
+            "https://mission-control-tawny-omega.vercel.app/api/monitoring/log" || true
+
+  # Täglicher Summary-Report (08:00 Berlin)
+  daily-report:
+    name: Daily Monitoring Report
+    runs-on: ubuntu-latest
+    if: github.event_name == 'schedule'
+    needs: monitor
+    steps:
+      - name: Send Daily Summary
+        env:
+          MC_API_KEY: ${{ secrets.MC_API_KEY }}
+        run: |
+          HOUR=$(date -u +%H)
+          # Nur um 08:00 UTC (10:00 Berlin)
+          if [[ "$HOUR" != "08" ]]; then
+            echo "Kein täglicher Report zur Stunde ${HOUR} — nur um 08:00 UTC"
+            exit 0
+          fi
+          
+          curl -s -X POST \
+            -H "Content-Type: application/json" \
+            -H "x-api-key: ${MC_API_KEY}" \
+            -d "{
+              \"title\": \"📊 Täglicher Monitoring-Report\",
+              \"body\": \"Alle Uptime-Checks der letzten 24h: Siehe GitHub Actions → Monitoring Workflow\",
+              \"priority\": \"low\",
+              \"category\": \"monitoring\"
+            }" \
+            "https://mission-control-tawny-omega.vercel.app/api/notifications" || true
