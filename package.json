@@ -1,7 +1,7 @@
 {
-  "name": "appfabrik-base",
+  "name": "feldhub-base",
   "version": "1.0.0",
-  "description": "AppFabrik Base — White-Label Field Service Management Template",
+  "description": "Feldhub Base — White-Label Field Service Management Template",
   "private": true,
   "scripts": {
     "dev": "next dev",
