@@ -202,6 +202,21 @@ cat .vercel/project.json
 
 ---
 
+## 📚 Dokumentation
+
+Ausführliche Entwickler-Dokumentation findest du im `/docs` Ordner:
+
+| Dokument | Beschreibung |
+|----------|--------------|
+| **[DEVELOPER.md](./docs/DEVELOPER.md)** | Vollständige Entwickler-Dokumentation (Architektur, ENV, Deployment) |
+| [API-CONVENTIONS.md](./docs/API-CONVENTIONS.md) | REST-API Standards |
+| [SECURITY-CHECKLIST.md](./docs/SECURITY-CHECKLIST.md) | Sicherheits-Checkliste |
+| [TENANT-SETUP-CHECKLIST.md](./docs/TENANT-SETUP-CHECKLIST.md) | Neukunden-Onboarding (15 Punkte) |
+| [ONBOARDING-PLAYBOOK.md](./docs/ONBOARDING-PLAYBOOK.md) | 4-Wochen-Plan für neue Kunden |
+| [openapi.yaml](./docs/openapi.yaml) | OpenAPI 3.0 Spezifikation |
+
+---
+
 ## 📄 Lizenz
 
 Proprietär — © 2026 AppFabrik
