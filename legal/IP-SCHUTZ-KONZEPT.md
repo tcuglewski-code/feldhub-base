@@ -1,7 +1,8 @@
 # IP-Schutz-Konzept: AppFabrik
 
-**Stand:** 29.03.2026  
-**Verantwortlich:** FELDWERK UG (haftungsbeschränkt)  
+**Stand:** 30.03.2026  
+**Version:** 1.1 (Sprint IK — erweitert um Marken-Strategie, IP-Register, CI License-Check)
+**Verantwortlich:** AppFabrik UG (haftungsbeschränkt) [in Gründung]  
 **Status:** Konzeptdokument (vor rechtlicher Prüfung)
 
 ---
@@ -239,7 +240,106 @@ FELDWERK UG                      Empfangende Partei
 
 ---
 
+---
+
+## 7. Marken-Strategie (Trademark)
+
+### 7.1 Schutzwürdige Zeichen
+
+| Zeichen | Typ | Priorität | Status |
+|---------|-----|-----------|--------|
+| "AppFabrik" | Wortmarke | 🔴 Hoch | Prüfung ausstehend |
+| AppFabrik Logo | Bildmarke | 🟡 Mittel | Logo noch in Entwicklung (Sprint IG) |
+| "ForstManager" | Wortmarke | 🟡 Mittel | Prüfung ausstehend |
+
+### 7.2 Markenanmeldung DPMA
+
+**Schritte:**
+1. Ähnlichkeitsrecherche im DPMA-Register (dpma.de) — kostenfrei
+2. Klassen-Auswahl:
+   - **Klasse 42:** Software-as-a-Service, IT-Dienstleistungen
+   - **Klasse 35:** Unternehmensberatung, Geschäftsführung
+3. Anmeldung beim DPMA: ca. 300 € für 1 Klasse
+4. Schutzumfang: Deutschland; EU-Marke (EUIPO) für europäischen Schutz empfohlen
+
+**Wichtig:** Markenanmeldung erst nach Firmenname-Entscheidung! → Wartet auf Tomek.
+
+### 7.3 Domain-Schutz
+
+| Domain | Status | Priorität |
+|--------|--------|-----------|
+| appfabrik.de | Prüfen/registrieren | 🔴 Hoch |
+| appfabrik.com | Prüfen/registrieren | 🔴 Hoch |
+| appfabrik.io | Optional | 🟡 Mittel |
+| feldwerk.de | Prüfen | 🟡 Mittel |
+
+---
+
+## 8. IP-Register
+
+Ein zentrales IP-Register dokumentiert alle geistigen Eigentumsrechte:
+
+### 8.1 Code-Assets
+
+| Repository | Erstellt | Eigentümer | Lizenz | Beschreibung |
+|-----------|---------|-----------|-------|-------------|
+| appfabrik-base | 2026 | AppFabrik UG | Proprietär | Core-Plattform Template |
+| appfabrik-app-base | 2026 | AppFabrik UG | Proprietär | Mobile App Template |
+| ka-app | 2025-2026 | AppFabrik UG | Proprietär | Koch Aufforstung App |
+| ka-forstmanager | 2025-2026 | AppFabrik UG | Proprietär | ForstManager Web-App |
+| mission-control | 2026 | AppFabrik UG | Proprietär | Internes Projektmanagement |
+
+### 8.2 Content-Assets
+
+| Asset | Erstellt | Eigentümer | Status |
+|-------|---------|-----------|--------|
+| AppFabrik Logo (in Entwicklung) | 2026 | AppFabrik UG | In Bearbeitung (Sprint IG) |
+| Brand Guidelines | 2026 | AppFabrik UG | In Bearbeitung |
+| Case Study Koch Aufforstung | 2026 | AppFabrik UG | Fertig |
+| Pitch Deck | 2026 | AppFabrik UG | Fertig |
+
+---
+
+## 9. License-Checker CI/CD Integration
+
+### 9.1 Konfiguration (`.github/workflows/license-check.yml`)
+
+```yaml
+name: License Check
+on: [push, pull_request]
+
+jobs:
+  license-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: npm ci
+      - run: npx license-checker --production --failOn "GPL;AGPL;LGPL" --csv > license-report.csv
+      - uses: actions/upload-artifact@v4
+        with:
+          name: license-report
+          path: license-report.csv
+```
+
+### 9.2 Erlaubte Lizenzen (Whitelist)
+
+```
+MIT, ISC, BSD-2-Clause, BSD-3-Clause, Apache-2.0, CC0-1.0, Unlicense, Python-2.0
+```
+
+### 9.3 Verbotene Lizenzen (Faillist)
+
+```
+GPL-2.0, GPL-3.0, AGPL-3.0, LGPL-2.0, LGPL-2.1, LGPL-3.0
+```
+
+---
+
 **Dokumentenhistorie:**
 | Datum | Version | Änderung |
 |-------|---------|----------|
 | 29.03.2026 | 1.0 | Erstversion |
+| 30.03.2026 | 1.1 | Marken-Strategie, IP-Register, License-Checker CI ergänzt (Sprint IK) |
