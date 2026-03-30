@@ -221,6 +221,38 @@ export interface AppConfig {
     enabled: boolean;
     requestOnLogin: boolean;
     topics: string[];           // FCM topics to subscribe
+    
+    /**
+     * Event types that trigger notifications (tenant can enable/disable)
+     */
+    enabledEvents?: string[];
+    
+    /**
+     * Quiet hours (no notifications during this time)
+     */
+    quietHours?: {
+      enabled: boolean;
+      start: string; // "22:00"
+      end: string;   // "07:00"
+      allowCritical: boolean;
+    };
+    
+    /**
+     * Custom notification channels for Android
+     */
+    channels?: Array<{
+      id: string;
+      name: string;
+      description?: string;
+      importance: 'min' | 'low' | 'default' | 'high' | 'max';
+      sound?: boolean;
+      vibration?: boolean;
+    }>;
+    
+    /**
+     * Route mapping for event types → deep links
+     */
+    routeMapping?: Record<string, string>;
   };
   
   // ==========================================================================
@@ -452,6 +484,33 @@ export const appConfig: AppConfig = {
     enabled: true,
     requestOnLogin: true,
     topics: ['all', 'auftraege'],
+    enabledEvents: [
+      'task.assigned',
+      'task.updated',
+      'task.due_soon',
+      'message.received',
+      'message.broadcast',
+      'system.update_available',
+    ],
+    quietHours: {
+      enabled: false,
+      start: '22:00',
+      end: '07:00',
+      allowCritical: true,
+    },
+    channels: [
+      { id: 'default', name: 'Allgemein', importance: 'default', sound: true, vibration: true },
+      { id: 'tasks', name: 'Aufgaben', importance: 'high', sound: true, vibration: true },
+      { id: 'messages', name: 'Nachrichten', importance: 'high', sound: true, vibration: true },
+      { id: 'system', name: 'System', importance: 'low', sound: false, vibration: false },
+    ],
+    routeMapping: {
+      'task.assigned': '/(tabs)/auftraege/[id]',
+      'task.updated': '/(tabs)/auftraege/[id]',
+      'task.due_soon': '/(tabs)/auftraege/[id]',
+      'message.received': '/(tabs)/messages/[id]',
+      'message.broadcast': '/(tabs)/messages',
+    },
   },
   
   ui: {
@@ -625,6 +684,39 @@ export const kochAufforstungAppConfig: AppConfig = {
     enabled: true,
     requestOnLogin: true,
     topics: ['all', 'pflanzauftraege', 'abnahmen', 'wetter'],
+    enabledEvents: [
+      'task.assigned',
+      'task.updated',
+      'task.due_soon',
+      'task.overdue',
+      'message.received',
+      'message.broadcast',
+      'team.schedule_changed',
+      'document.signed',
+      'system.update_available',
+    ],
+    quietHours: {
+      enabled: true,
+      start: '21:00',
+      end: '06:00',
+      allowCritical: true,
+    },
+    channels: [
+      { id: 'default', name: 'Allgemein', importance: 'default', sound: true, vibration: true },
+      { id: 'pflanzauftraege', name: 'Pflanzaufträge', importance: 'high', sound: true, vibration: true },
+      { id: 'abnahmen', name: 'Abnahmen', importance: 'high', sound: true, vibration: true },
+      { id: 'wetter', name: 'Wetter', description: 'Wetterwarnung', importance: 'high', sound: true, vibration: true },
+      { id: 'system', name: 'System', importance: 'low', sound: false, vibration: false },
+    ],
+    routeMapping: {
+      'task.assigned': '/(tabs)/auftraege/[id]',
+      'task.updated': '/(tabs)/auftraege/[id]',
+      'task.due_soon': '/(tabs)/auftraege/[id]',
+      'task.overdue': '/(tabs)/auftraege',
+      'message.received': '/(tabs)/messages/[id]',
+      'team.schedule_changed': '/(tabs)/team',
+      'document.signed': '/(tabs)/dokumente/[id]',
+    },
   },
   
   ui: {

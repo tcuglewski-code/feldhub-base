@@ -275,19 +275,160 @@ await addToSyncQueue('meine_daten', entityId, 'create', payload);
 
 ## 🔔 Push Notifications
 
+Das App-Template enthält einen vollständigen Push Notification Service mit Tenant-Konfiguration.
+
+### Architektur
+
+```
+lib/notifications/
+├── index.ts                  # Exports
+├── types.ts                  # TypeScript Typen & Konfiguration
+├── NotificationService.ts    # Singleton Service
+├── NotificationProvider.tsx  # React Context Provider
+└── useNotifications.ts       # React Hooks
+
+components/notifications/
+└── NotificationSettings.tsx  # Einstellungs-UI Komponente
+```
+
+### Setup in _layout.tsx
+
 ```typescript
-// In app/_layout.tsx oder eigener Hook
+import { NotificationProvider } from '../lib/notifications';
+import { appConfig } from '../config/tenant';
 
-import * as Notifications from 'expo-notifications';
+export default function RootLayout() {
+  return (
+    <NotificationProvider
+      apiBaseUrl={appConfig.api.baseUrl}
+      config={appConfig.push}
+      autoInit={true}
+      autoRegister={false}  // Erst nach Login registrieren
+    >
+      <Stack />
+    </NotificationProvider>
+  );
+}
+```
 
-// Token registrieren
-const token = await Notifications.getExpoPushTokenAsync();
+### Nach Login registrieren
 
-// An Backend senden
-await fetch(`${api}/push/register`, {
-  method: 'POST',
-  body: JSON.stringify({ token: token.data }),
-});
+```typescript
+import { useNotificationContext } from '../lib/notifications';
+
+function AfterLoginScreen() {
+  const { register, updateAuthToken } = useNotificationContext();
+  
+  useEffect(() => {
+    // Auth-Token setzen
+    updateAuthToken(userToken);
+    
+    // Push-Token registrieren (wenn in tenant.ts aktiviert)
+    if (appConfig.push.requestOnLogin) {
+      register();
+    }
+  }, [userToken]);
+}
+```
+
+### Tenant-Konfiguration
+
+In `config/tenant.ts`:
+
+```typescript
+push: {
+  enabled: true,
+  requestOnLogin: true,
+  topics: ['all', 'auftraege', 'wetter'],
+  enabledEvents: [
+    'task.assigned',
+    'task.updated',
+    'task.due_soon',
+    'message.received',
+  ],
+  quietHours: {
+    enabled: true,
+    start: '22:00',
+    end: '07:00',
+    allowCritical: true,
+  },
+  channels: [
+    { id: 'tasks', name: 'Aufgaben', importance: 'high' },
+    { id: 'messages', name: 'Nachrichten', importance: 'high' },
+  ],
+  routeMapping: {
+    'task.assigned': '/(tabs)/auftraege/[id]',
+    'message.received': '/(tabs)/messages/[id]',
+  },
+}
+```
+
+### Event-Typen
+
+| Event | Beschreibung |
+|-------|--------------|
+| `task.assigned` | Neue Aufgabe zugewiesen |
+| `task.updated` | Aufgabe aktualisiert |
+| `task.due_soon` | Aufgabe bald fällig |
+| `task.overdue` | Aufgabe überfällig |
+| `message.received` | Neue Nachricht |
+| `message.broadcast` | Team-Broadcast |
+| `team.schedule_changed` | Zeitplan geändert |
+| `document.signed` | Unterschrift benötigt |
+| `system.update_available` | App-Update verfügbar |
+
+### Hooks
+
+```typescript
+import { useNotifications, useNotificationReceived } from '../lib/notifications';
+
+function MyComponent() {
+  // Voller Zugriff
+  const {
+    token,
+    unreadCount,
+    permissionStatus,
+    register,
+    clearBadge,
+    setEnabledEvents,
+  } = useNotifications();
+
+  // Notification-Listener
+  useNotificationReceived((notification) => {
+    console.log('Notification received:', notification);
+  });
+}
+```
+
+### Einstellungs-Screen
+
+```typescript
+import { NotificationSettings } from '../components/notifications';
+
+// In app/(tabs)/einstellungen/benachrichtigungen.tsx
+export default function BenachrichtigungenScreen() {
+  return <NotificationSettings />;
+}
+```
+
+### Backend-Endpunkte (erforderlich)
+
+Das Backend muss folgende Endpunkte bereitstellen:
+
+| Endpoint | Method | Beschreibung |
+|----------|--------|--------------|
+| `/api/push/register` | POST | Token registrieren |
+| `/api/push/unregister` | POST | Token löschen |
+| `/api/push/topics/subscribe` | POST | Topic abonnieren |
+| `/api/push/topics/unsubscribe` | POST | Topic abbestellen |
+
+**Register Body:**
+```json
+{
+  "token": "ExponentPushToken[xxx]",
+  "platform": "android",
+  "deviceId": "..."
+}
 ```
 
 ---
