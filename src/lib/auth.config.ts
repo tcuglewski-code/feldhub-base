@@ -1,61 +1,58 @@
 /**
- * NextAuth Configuration (Edge-safe)
+ * NextAuth.js Edge-Safe Configuration
  * 
- * Diese Datei enthält keine Prisma-Importe und kann in Edge-Runtimes
- * (z.B. Middleware) verwendet werden.
+ * Diese Konfiguration kann in der Middleware verwendet werden,
+ * da sie keine Prisma-Abhängigkeit hat.
  * 
- * Multi-Tenant Konzept:
- * - tenantId wird bei Login aus User-Daten übernommen
- * - JWT enthält tenantId, role, permissions
- * - Session-Callbacks reichen diese Daten durch
+ * Die Provider werden in auth.ts hinzugefügt.
  */
 
 import type { NextAuthConfig } from "next-auth"
 
 export const authConfig = {
-  // JWT-basierte Sessions (stateless, edge-safe)
-  session: {
+  // JWT-basierte Sessions (stateless, Edge-kompatibel)
+  session: { 
     strategy: "jwt",
     maxAge: 30 * 24 * 60 * 60, // 30 Tage
   },
   
-  // Custom Login-Seite
+  // Custom Pages
   pages: {
     signIn: "/login",
     error: "/login",
   },
   
+  // Callbacks für JWT und Session
   callbacks: {
     /**
      * JWT Callback - wird bei jedem Token-Update aufgerufen
-     * 
-     * Bei Login (user vorhanden): Übernimmt User-Daten ins Token
-     * Bei jedem Request: Token wird unverändert weitergegeben
+     * Speichert User-Daten im Token
      */
     jwt({ token, user, trigger, session }) {
-      // Beim initialen Login User-Daten ins Token schreiben
+      // Bei Login: User-Daten ins Token
       if (user) {
-        token.id = user.id as string
-        token.tenantId = (user as any).tenantId
-        token.role = (user as any).role
-        token.permissions = (user as any).permissions ?? []
-        token.twoFactorEnabled = (user as any).twoFactorEnabled ?? false
+        token.id = user.id
+        token.tenantId = user.tenantId
+        token.role = user.role
+        token.permissions = user.permissions
+        token.twoFactorEnabled = user.twoFactorEnabled
       }
       
-      // Bei Session-Update (z.B. nach Rollen-Änderung)
+      // Bei Session-Update: neue Daten übernehmen
       if (trigger === "update" && session) {
-        if (session.role) token.role = session.role
-        if (session.permissions) token.permissions = session.permissions
+        token.name = session.name ?? token.name
+        token.role = session.role ?? token.role
+        token.permissions = session.permissions ?? token.permissions
       }
       
       return token
     },
     
     /**
-     * Session Callback - macht Token-Daten in der Session verfügbar
+     * Session Callback - formt das Session-Objekt für den Client
      */
     session({ session, token }) {
-      if (session.user) {
+      if (session.user && token) {
         session.user.id = token.id as string
         session.user.tenantId = token.tenantId as string
         session.user.role = token.role as string
@@ -66,42 +63,44 @@ export const authConfig = {
     },
     
     /**
-     * Authorized Callback - prüft ob Zugriff erlaubt ist
-     * 
-     * Wird von der Middleware für Route-Protection genutzt.
+     * Authorized Callback - wird von der Middleware aufgerufen
+     * Prüft ob der Request autorisiert ist
      */
-    authorized({ auth, request: { nextUrl } }) {
-      const isLoggedIn = !!auth?.user
-      const isOnLogin = nextUrl.pathname === "/login"
-      const isOnRegister = nextUrl.pathname === "/register"
-      const isOnApi = nextUrl.pathname.startsWith("/api/")
-      const isPublicApi = nextUrl.pathname.startsWith("/api/auth/") ||
-                          nextUrl.pathname.startsWith("/api/public/")
+    authorized({ auth, request }) {
+      const { pathname } = request.nextUrl
       
-      // Public Routes
-      if (isOnLogin || isOnRegister || isPublicApi) {
+      // Öffentliche Pfade (immer erlaubt)
+      const publicPaths = [
+        "/login",
+        "/api/auth",
+        "/_next",
+        "/favicon.ico",
+        "/logo",
+        "/images",
+      ]
+      
+      if (publicPaths.some(path => pathname.startsWith(path))) {
         return true
       }
       
-      // API Routes brauchen Auth (außer public)
-      if (isOnApi && !isLoggedIn) {
-        return false
+      // API-Routen ohne Auth (z.B. Webhooks)
+      const publicApiPaths = [
+        "/api/webhooks",
+        "/api/health",
+        "/api/magic-link/request",
+      ]
+      
+      if (publicApiPaths.some(path => pathname.startsWith(path))) {
+        return true
       }
       
-      // Dashboard Routes brauchen Auth
-      if (!isLoggedIn) {
-        return Response.redirect(new URL("/login", nextUrl))
-      }
-      
-      // Eingeloggt → Zugriff erlaubt (Fein-Permissions in den Routes selbst)
-      return true
+      // Alle anderen Pfade: Login erforderlich
+      const isLoggedIn = !!auth?.user
+      return isLoggedIn
     },
   },
   
-  // Providers werden in auth.ts hinzugefügt
+  // Leere Providers - werden in auth.ts hinzugefügt
   providers: [],
-  
-  // Debug nur in Development
-  debug: process.env.NODE_ENV === "development",
   
 } satisfies NextAuthConfig
