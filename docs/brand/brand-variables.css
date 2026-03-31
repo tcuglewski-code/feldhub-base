@@ -1,0 +1,234 @@
+/**
+ * FELDHUB BRAND VARIABLES
+ * ========================
+ * 
+ * Standalone CSS-Variables Export für einfache Integration.
+ * Kopiere diese Datei in andere Projekte oder importiere sie.
+ * 
+ * Quelle: brand-guidelines.md v1.0 (2026-03-30)
+ * 
+ * VERWENDUNG:
+ * -----------
+ * @import url('./brand-variables.css');
+ * 
+ * oder kopiere den :root Block in dein globals.css
+ */
+
+:root {
+  /* ==========================================================================
+     PRIMÄRPALETTE (Feldhub Grün)
+     ========================================================================== */
+  
+  --feldhub-green: #2D6A4F;           /* Primary CTA, Headings, Akzente */
+  --feldhub-green-dark: #1B4332;      /* Dark Mode BG, Footer, Hover-States */
+  --feldhub-green-light: #52B788;     /* Erfolg, Positive States, Tags */
+  
+  /* Alias für generische Nutzung */
+  --color-primary: var(--feldhub-green);
+  --color-primary-dark: var(--feldhub-green-dark);
+  --color-primary-light: var(--feldhub-green-light);
+  
+  /* ==========================================================================
+     SEKUNDÄRPALETTE
+     ========================================================================== */
+  
+  --feldhub-earth: #6B4423;           /* Wärme, Kontrast, Branche-Referenz */
+  --feldhub-sand: #D4A853;            /* Highlights, Preise, Badges */
+  --feldhub-slate: #4A5568;           /* Body Text, Sekundäre Elemente */
+  
+  --color-secondary: var(--feldhub-sand);
+  --color-secondary-dark: #A68A3E;
+  --color-secondary-light: #D4BC7F;
+  
+  /* ==========================================================================
+     NEUTRAL-PALETTE
+     ========================================================================== */
+  
+  --gray-900: #1A202C;                /* Headlines, starker Text */
+  --gray-700: #2D3748;                /* Body Text */
+  --gray-500: #718096;                /* Sekundärer Text, Platzhalter */
+  --gray-200: #EDF2F7;                /* Hintergrund, Cards */
+  --gray-50: #F7FAFC;                 /* Page Background */
+  --white: #FFFFFF;                   /* Cards, Panels */
+  
+  /* ==========================================================================
+     SEMANTISCHE FARBEN
+     ========================================================================== */
+  
+  --color-success: #52B788;           /* Bestätigungen, abgeschlossen */
+  --color-success-light: #DCFCE7;
+  --color-warning: #ED8936;           /* Achtung, ausstehend */
+  --color-warning-light: #FEF3C7;
+  --color-error: #E53E3E;             /* Fehler, abgelehnt */
+  --color-error-light: #FEE2E2;
+  --color-info: #3182CE;              /* Informationen, Hinweise */
+  --color-info-light: #DBEAFE;
+  
+  /* ==========================================================================
+     HINTERGRUND & OBERFLÄCHEN
+     ========================================================================== */
+  
+  --color-background: var(--gray-50);
+  --color-background-alt: var(--white);
+  --color-surface: var(--white);
+  --color-border: #E5E7EB;
+  --color-divider: #E5E7EB;
+  
+  /* ==========================================================================
+     TEXT
+     ========================================================================== */
+  
+  --color-text: var(--gray-900);
+  --color-text-muted: var(--gray-500);
+  --color-text-on-primary: var(--white);
+  --color-text-on-secondary: var(--gray-900);
+  
+  /* ==========================================================================
+     SIDEBAR (für Dashboard-Layouts)
+     ========================================================================== */
+  
+  --color-sidebar-bg: var(--feldhub-green-dark);
+  --color-sidebar-text: var(--white);
+  --color-sidebar-active: var(--feldhub-sand);
+  
+  /* ==========================================================================
+     TYPOGRAFIE
+     ========================================================================== */
+  
+  /* Font-Familien */
+  --font-family-base: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-family-mono: 'JetBrains Mono', 'Fira Code', Consolas, monospace;
+  --font-family-display: 'Bricolage Grotesque', var(--font-family-base);  /* Optional Premium */
+  
+  /* Font-Größen (rem) */
+  --font-size-xs: 0.75rem;            /* 12px — Labels, Badges */
+  --font-size-sm: 0.875rem;           /* 14px — Sekundärer Text */
+  --font-size-base: 1rem;             /* 16px — Body Text (Standard) */
+  --font-size-lg: 1.125rem;           /* 18px — Größerer Body */
+  --font-size-xl: 1.25rem;            /* 20px — Abschnitt-Leads */
+  --font-size-2xl: 1.5rem;            /* 24px — H3 / Card Headlines */
+  --font-size-3xl: 1.875rem;          /* 30px — H2 / Section Headlines */
+  --font-size-4xl: 2.25rem;           /* 36px — H1 / Page Headlines */
+  --font-size-5xl: 3rem;              /* 48px — Hero Headlines */
+  --font-size-6xl: 3.75rem;           /* 60px — Display Headlines */
+  
+  /* Zeilenhöhen */
+  --line-height-tight: 1.2;           /* Headlines */
+  --line-height-normal: 1.6;          /* Body Text */
+  --line-height-relaxed: 1.75;        /* Lange Texte */
+  
+  /* ==========================================================================
+     SPACING (Tailwind-kompatibel)
+     ========================================================================== */
+  
+  --spacing-1: 0.25rem;               /* 4px */
+  --spacing-2: 0.5rem;                /* 8px */
+  --spacing-3: 0.75rem;               /* 12px */
+  --spacing-4: 1rem;                  /* 16px */
+  --spacing-5: 1.25rem;               /* 20px */
+  --spacing-6: 1.5rem;                /* 24px */
+  --spacing-8: 2rem;                  /* 32px */
+  --spacing-10: 2.5rem;               /* 40px */
+  --spacing-12: 3rem;                 /* 48px */
+  --spacing-16: 4rem;                 /* 64px */
+  --spacing-20: 5rem;                 /* 80px */
+  --spacing-24: 6rem;                 /* 96px */
+  --spacing-32: 8rem;                 /* 128px */
+  
+  /* ==========================================================================
+     BORDER RADIUS
+     ========================================================================== */
+  
+  --radius-sm: 0.25rem;               /* 4px — Inputs, Badges */
+  --radius-md: 0.375rem;              /* 6px — Buttons */
+  --radius-lg: 0.5rem;                /* 8px — Cards */
+  --radius-xl: 0.75rem;               /* 12px — Modals */
+  --radius-2xl: 1rem;                 /* 16px — Large cards */
+  --radius-full: 9999px;              /* Pill-shaped */
+  
+  /* ==========================================================================
+     SHADOWS
+     ========================================================================== */
+  
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+  
+  /* ==========================================================================
+     TRANSITIONS
+     ========================================================================== */
+  
+  --transition-fast: 150ms ease;
+  --transition-normal: 200ms ease;
+  --transition-slow: 300ms ease;
+  
+  /* ==========================================================================
+     CHART-FARBEN (für Daten-Visualisierung)
+     ========================================================================== */
+  
+  --chart-1: var(--feldhub-green);    /* #2D6A4F */
+  --chart-2: var(--feldhub-green-light); /* #52B788 */
+  --chart-3: var(--feldhub-sand);     /* #D4A853 */
+  --chart-4: var(--feldhub-earth);    /* #6B4423 */
+  --chart-5: var(--feldhub-slate);    /* #4A5568 */
+  --chart-6: var(--color-info);       /* #3182CE */
+}
+
+/* =============================================================================
+   DARK MODE
+   ============================================================================= */
+
+.dark,
+[data-theme="dark"] {
+  --color-background: #0f0f0f;
+  --color-background-alt: #1a1a1a;
+  --color-surface: #1f1f1f;
+  
+  --color-text: #ffffff;
+  --color-text-muted: #a1a1aa;
+  
+  --color-border: #2a2a2a;
+  --color-divider: #262626;
+  
+  /* In Dark Mode: Grün bleibt, aber leicht aufgehellt für Lesbarkeit */
+  --color-primary: #40916C;
+  --color-primary-light: #52B788;
+  --color-primary-dark: #1B4332;
+}
+
+/* =============================================================================
+   PREFERS-COLOR-SCHEME (System-Preference)
+   ============================================================================= */
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --color-background: #0f0f0f;
+    --color-background-alt: #1a1a1a;
+    --color-surface: #1f1f1f;
+    --color-text: #ffffff;
+    --color-text-muted: #a1a1aa;
+    --color-border: #2a2a2a;
+    --color-divider: #262626;
+  }
+}
+
+/* =============================================================================
+   UTILITY CLASSES
+   ============================================================================= */
+
+/* Brand-Farben als Tailwind-ähnliche Klassen */
+.bg-feldhub-green { background-color: var(--feldhub-green); }
+.bg-feldhub-green-dark { background-color: var(--feldhub-green-dark); }
+.bg-feldhub-green-light { background-color: var(--feldhub-green-light); }
+.bg-feldhub-sand { background-color: var(--feldhub-sand); }
+.bg-feldhub-earth { background-color: var(--feldhub-earth); }
+
+.text-feldhub-green { color: var(--feldhub-green); }
+.text-feldhub-green-dark { color: var(--feldhub-green-dark); }
+.text-feldhub-green-light { color: var(--feldhub-green-light); }
+.text-feldhub-sand { color: var(--feldhub-sand); }
+.text-feldhub-earth { color: var(--feldhub-earth); }
+
+.border-feldhub-green { border-color: var(--feldhub-green); }
+.border-feldhub-sand { border-color: var(--feldhub-sand); }
