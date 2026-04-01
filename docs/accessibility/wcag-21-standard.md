@@ -1,6 +1,6 @@
 # Feldhub Accessibility Standard — WCAG 2.1 AA
 
-> Stand: 31.03.2026 | Sprint JV
+> Stand: 01.04.2026 | Sprint AF081 — axe-core Integration aktiv
 
 ## Überblick
 
@@ -211,13 +211,29 @@ className="focus-visible:ring-white focus-visible:ring-offset-primary"
 
 ## Testing-Toolchain
 
+### 🚀 A11y-Tests ausführen
+
+```bash
+# Lokal alle A11y-Tests
+npm run test:a11y
+
+# Mit UI (Debug-Modus)
+npm run test:a11y:ui
+
+# Nur ein spezifischer Test
+npx playwright test tests/a11y/main-pages.spec.ts --grep "Login"
+```
+
 ### Automatisiert (CI)
 
 | Tool | Was es prüft | Integration |
 |------|-------------|-------------|
-| `axe-core` via `@axe-core/playwright` | 40% aller WCAG-Regeln | Playwright Tests |
+| `axe-core` via `@axe-core/playwright` | 40% aller WCAG-Regeln | Playwright Tests ✅ |
 | `eslint-plugin-jsx-a11y` | JSX-spezifische A11y-Regeln | ESLint |
-| Lighthouse CI | Accessibility Score ≥ 90 | GitHub Actions |
+| Lighthouse CI | Accessibility Score ≥ 90 | GitHub Actions ✅ |
+
+**GitHub Actions Workflow:** `.github/workflows/a11y.yml`  
+Läuft automatisch bei PRs und auf main-Branch.
 
 ### Manuell (Checkliste vor Release)
 

@@ -20,6 +20,9 @@
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:headed": "playwright test --headed",
     "test:e2e:ci": "playwright test --project=chromium",
+    "test:a11y": "TEST_A11Y=1 playwright test tests/a11y/ --project=chromium",
+    "test:a11y:ui": "TEST_A11Y=1 playwright test tests/a11y/ --ui",
+    "test:a11y:ci": "TEST_A11Y=1 playwright test tests/a11y/ --project=chromium --reporter=list",
     "test:perf": "playwright test e2e/performance.spec.ts",
     "test:perf:ci": "playwright test e2e/performance.spec.ts --project=chromium",
     "lighthouse": "npx lighthouse http://localhost:3000 --output=html --output-path=./reports/lighthouse.html --chrome-flags='--headless'",
@@ -58,6 +61,7 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.11.1",
     "@playwright/test": "^1.58.2",
     "@tailwindcss/postcss": "^4",
     "@testing-library/jest-dom": "^6.9.1",

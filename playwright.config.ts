@@ -8,9 +8,10 @@ import { defineConfig, devices } from '@playwright/test';
  *   npx playwright test --ui         - Run tests with UI
  *   npx playwright test --headed     - Run tests with browser visible
  *   npx playwright test e2e/auth     - Run only auth tests
+ *   npx playwright test tests/a11y   - Run accessibility tests
  */
 export default defineConfig({
-  testDir: './e2e',
+  testDir: process.env.TEST_A11Y ? './tests/a11y' : './e2e',
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,

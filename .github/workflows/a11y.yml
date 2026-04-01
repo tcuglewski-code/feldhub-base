@@ -1,0 +1,128 @@
+# Accessibility Tests (WCAG 2.1 AA)
+# 
+# Automatisierte A11y-Tests via axe-core + Playwright.
+# Läuft bei PRs und auf main-Branch.
+
+name: Accessibility Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  # Manueller Trigger
+  workflow_dispatch:
+
+jobs:
+  a11y:
+    name: WCAG 2.1 AA Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright Chromium
+        run: npx playwright install chromium --with-deps
+
+      - name: Build application
+        run: npm run build
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL || 'postgresql://test:test@localhost:5432/test' }}
+          NEXTAUTH_SECRET: 'test-secret-for-ci-build'
+          NEXTAUTH_URL: 'http://localhost:3000'
+
+      - name: Start server
+        run: npm run start &
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL || 'postgresql://test:test@localhost:5432/test' }}
+          NEXTAUTH_SECRET: 'test-secret-for-ci-build'
+          NEXTAUTH_URL: 'http://localhost:3000'
+          NODE_ENV: production
+
+      - name: Wait for server
+        run: |
+          echo "Waiting for server to start..."
+          for i in {1..30}; do
+            if curl -s http://localhost:3000 > /dev/null; then
+              echo "Server is ready!"
+              break
+            fi
+            echo "Waiting... ($i/30)"
+            sleep 2
+          done
+
+      - name: Run A11y Tests
+        run: npm run test:a11y:ci
+        env:
+          PLAYWRIGHT_BASE_URL: 'http://localhost:3000'
+
+      - name: Upload A11y Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: a11y-report
+          path: playwright-report/
+          retention-days: 30
+
+  # Lighthouse A11y Score
+  lighthouse:
+    name: Lighthouse A11y Audit
+    runs-on: ubuntu-latest
+    needs: a11y
+    if: github.event_name == 'pull_request'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build application
+        run: npm run build
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL || 'postgresql://test:test@localhost:5432/test' }}
+          NEXTAUTH_SECRET: 'test-secret-for-ci-build'
+          NEXTAUTH_URL: 'http://localhost:3000'
+
+      - name: Start server
+        run: npm run start &
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL || 'postgresql://test:test@localhost:5432/test' }}
+          NEXTAUTH_SECRET: 'test-secret-for-ci-build'
+          NEXTAUTH_URL: 'http://localhost:3000'
+
+      - name: Wait for server
+        run: sleep 10
+
+      - name: Run Lighthouse A11y
+        id: lighthouse
+        uses: treosh/lighthouse-ci-action@v11
+        with:
+          urls: |
+            http://localhost:3000
+            http://localhost:3000/login
+          budgetPath: ./lighthouse-budget.json
+          uploadArtifacts: true
+
+      - name: Check A11y Score
+        run: |
+          echo "Lighthouse A11y Score should be > 90"
+          # Score wird in lighthouse-budget.json definiert
