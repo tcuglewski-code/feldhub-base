@@ -109,20 +109,32 @@ export const lightTheme: ThemeTokens = {
   radiusLg:             '0.75rem',
 }
 
+/**
+ * Dark Theme — Waldgrün-Palette für bessere Brand-Kohärenz
+ * 
+ * Statt reinem Schwarz/Grau nutzen wir subtile Grüntöne
+ * die zur Feldhub/Forst-Identität passen.
+ */
 export const darkTheme: ThemeTokens = {
   ...lightTheme,
-  colorBackground:      '#0a0a0a',
-  colorForeground:      '#fafafa',
-  colorMuted:           '#27272a',
-  colorMutedForeground: '#a1a1aa',
-  colorBorder:          '#3f3f46',
-  colorInput:           '#3f3f46',
-  colorCard:            '#18181b',
-  colorCardForeground:  '#fafafa',
-  // Shadows softer in dark
-  shadowSm: '0 1px 2px 0 rgb(0 0 0 / 0.3)',
-  shadowMd: '0 4px 6px -1px rgb(0 0 0 / 0.4), 0 2px 4px -2px rgb(0 0 0 / 0.3)',
-  shadowLg: '0 10px 15px -3px rgb(0 0 0 / 0.5), 0 4px 6px -4px rgb(0 0 0 / 0.4)',
+  // Hintergründe mit subtilen Grüntönen
+  colorBackground:      '#0f110e',       // Fast schwarz mit Grünstich
+  colorForeground:      '#f4f7f3',       // Warmweiß
+  colorMuted:           '#1a2118',       // Dunkelgrün für Cards
+  colorMutedForeground: '#9caa97',       // Gedämpftes Grün für Sekundärtext
+  colorBorder:          '#2d3b29',       // Grüne Borders
+  colorInput:           '#232d20',       // Input-Hintergrund
+  colorCard:            '#161a14',       // Karten-Hintergrund
+  colorCardForeground:  '#f4f7f3',
+  // Brand-Primary etwas aufgehellt für Dark Mode
+  colorPrimary:         '#4a6b42',       // Helleres Waldgrün
+  colorPrimary500:      '#5d7d53',
+  colorPrimary600:      '#4a6b42',
+  colorPrimary700:      '#3a5535',
+  // Shadows weicher
+  shadowSm: '0 1px 2px 0 rgb(0 0 0 / 0.4)',
+  shadowMd: '0 4px 6px -1px rgb(0 0 0 / 0.5), 0 2px 4px -2px rgb(0 0 0 / 0.4)',
+  shadowLg: '0 10px 15px -3px rgb(0 0 0 / 0.6), 0 4px 6px -4px rgb(0 0 0 / 0.5)',
 }
 
 /**

@@ -1,52 +1,28 @@
 /**
- * Feldhub Dark Mode Provider Setup
- *
- * Nutzt `next-themes` für persistentes Theme-Switching.
- * Installation: npm install next-themes
+ * Feldhub Dark Mode System
+ * 
+ * Re-Export der ThemeProvider-Komponenten aus @/components/providers/ThemeProvider
+ * 
+ * Die eigene Implementation bietet bessere Integration mit dem tenant.ts System
+ * als next-themes direkt und unterstützt:
+ * - System-Präferenz (prefers-color-scheme)
+ * - localStorage Persistenz
+ * - Tenant-konfigurierbare Dark-Mode-Aktivierung
+ * - Automatische Kontrast-Validierung
+ * - FOUC-Prevention
  */
 
 'use client'
 
-import { ThemeProvider as NextThemesProvider } from 'next-themes'
-import type { ThemeProviderProps } from 'next-themes/dist/types'
+// Re-Export alles aus dem ThemeProvider
+export {
+  ThemeProvider as FeldhubThemeProvider,
+  useTheme,
+  ThemeToggle,
+  ContrastWarningBanner,
+  type ThemeMode,
+  type ThemeContextValue,
+} from '@/components/providers/ThemeProvider'
 
-/**
- * FeldhubThemeProvider — wraps next-themes ThemeProvider.
- * Platziere ihn im Root Layout (app/layout.tsx).
- *
- * @example
- * // app/layout.tsx
- * import { FeldhubThemeProvider } from '@/theme/dark-mode'
- * export default function RootLayout({ children }) {
- *   return (
- *     <html lang="de" suppressHydrationWarning>
- *       <body>
- *         <FeldhubThemeProvider>{children}</FeldhubThemeProvider>
- *       </body>
- *     </html>
- *   )
- * }
- */
-export function FeldhubThemeProvider({
-  children,
-  ...props
-}: ThemeProviderProps) {
-  return (
-    <NextThemesProvider
-      attribute="class"        // setzt class="dark" auf <html>
-      defaultTheme="system"    // folgt System-Präferenz
-      enableSystem             // prefers-color-scheme
-      disableTransitionOnChange
-      {...props}
-    >
-      {children}
-    </NextThemesProvider>
-  )
-}
-
-/**
- * useTheme Hook — re-export für einfachen Import.
- * @example
- * const { theme, setTheme, resolvedTheme } = useTheme()
- */
-export { useTheme } from 'next-themes'
+// Default export für Kompatibilität
+export { ThemeProvider as default } from '@/components/providers/ThemeProvider'

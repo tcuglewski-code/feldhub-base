@@ -59,17 +59,30 @@
   --background: var(--color-background);
 }
 
-/* Dark Mode Overrides */
+/* Dark Mode Overrides — Waldgrün-Palette */
 .dark {
-  --color-background: #0f0f0f;
-  --color-background-alt: #1a1a1a;
-  --color-surface: #1f1f1f;
-  --color-text: #ffffff;
-  --color-text-muted: #a1a1aa;
-  --color-border: #2a2a2a;
-  --color-divider: #262626;
-  --foreground: #ffffff;
-  --background: #0f0f0f;
+  --color-background: #0f110e;
+  --color-background-alt: #161a14;
+  --color-surface: #1a2118;
+  --color-text: #f4f7f3;
+  --color-text-muted: #9caa97;
+  --color-text-on-primary: #f4f7f3;
+  --color-border: #2d3b29;
+  --color-divider: #232d20;
+  --color-sidebar-bg: #121510;
+  --color-sidebar-text: #f4f7f3;
+  --foreground: #f4f7f3;
+  --background: #0f110e;
+  
+  /* Semantic Colors — etwas gedämpft im Dark Mode */
+  --color-success: #22c55e;
+  --color-success-light: #1a2e1f;
+  --color-warning: #f59e0b;
+  --color-warning-light: #2d2510;
+  --color-error: #ef4444;
+  --color-error-light: #2d1818;
+  --color-info: #3b82f6;
+  --color-info-light: #1a2236;
 }
 
 @theme inline {
