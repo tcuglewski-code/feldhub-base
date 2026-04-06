@@ -12,8 +12,10 @@ export async function GET(req: NextRequest) {
   const search = searchParams.get("search")
   const limit = Math.min(parseInt(searchParams.get("limit") ?? "100"), 200)
 
+  // IDOR-Fix OID: tenantId-Validierung — verhindert Cross-Tenant-Zugriff
+  const tenantId = session.user.tenantId
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const where: any = {}
+  const where: any = { tenantId }
 
   // Sprint UX: Schnellsuche
   if (search) {

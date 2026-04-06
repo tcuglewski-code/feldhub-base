@@ -11,9 +11,12 @@ export async function GET(req: NextRequest) {
   const rolle = searchParams.get("rolle") || ""
   const limit = Math.min(parseInt(searchParams.get("limit") ?? "100"), 200)
 
+  // IDOR-Fix OIC: tenantId-Validierung — verhindert Cross-Tenant-Zugriff
+  const tenantId = session.user.tenantId
   const mitarbeiter = await prisma.mitarbeiter.findMany({
     where: {
       AND: [
+        { tenantId },
         suche
           ? {
               OR: [

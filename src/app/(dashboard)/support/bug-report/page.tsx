@@ -4,7 +4,7 @@
  */
 
 import { BugReportForm } from "@/components/support/BugReportForm"
-import { getTenantConfig } from "@/config/tenant"
+import { getCurrentTenant as getTenantConfig } from "@/config/tenant"
 
 export const metadata = {
   title: "Fehler melden | Feldhub Support",

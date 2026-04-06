@@ -10,7 +10,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { DEFAULT_UPSELL_TRIGGERS, evaluateTriggers } from "@/lib/upselling"
-import { getTenantConfig } from "@/config/tenant"
+import { getCurrentTenant as getTenantConfig } from "@/config/tenant"
 
 export const dynamic = "force-dynamic"
 export const maxDuration = 45

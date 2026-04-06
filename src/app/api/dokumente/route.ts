@@ -9,7 +9,9 @@ export async function GET(req: NextRequest) {
   const typ = searchParams.get("typ")
   const auftragId = searchParams.get("auftragId")
   const saisonId = searchParams.get("saisonId")
-  const where: Record<string, unknown> = {}
+  // IDOR-Fix OID: tenantId-Validierung — verhindert Cross-Tenant-Zugriff
+  const tenantId = session.user.tenantId
+  const where: Record<string, unknown> = { tenantId }
   if (typ) where.typ = typ
   if (auftragId) where.auftragId = auftragId
   if (saisonId) where.saisonId = saisonId

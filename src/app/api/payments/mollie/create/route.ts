@@ -17,8 +17,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { auth } from '@/lib/auth';
 import { 
   getMollieClient, 
   isMollieEnabled,
@@ -51,7 +50,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Auth check (optional, depends on use case)
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     // For customer portal, you might want different auth
 
     // Parse body

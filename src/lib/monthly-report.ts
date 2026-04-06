@@ -11,7 +11,7 @@
  */
 
 import { prisma } from "@/lib/prisma"
-import { getTenantConfig } from "@/config/tenant"
+import { getCurrentTenant as getTenantConfig } from "@/config/tenant"
 
 export interface MonthlyReportData {
   period: { year: number; month: number; label: string }

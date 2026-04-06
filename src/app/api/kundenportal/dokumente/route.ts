@@ -19,6 +19,13 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: "kundeId fehlt" }, { status: 400 })
   }
 
+  // IDOR-Fix OIF: kundeId-Validierung — verhindert Cross-Tenant-Zugriff
+  const tenantId = session.user.tenantId
+  const kontakt = await prisma.kontakt.findFirst({ where: { id: kundeId, tenantId } })
+  if (!kontakt) {
+    return NextResponse.json({ error: "Nicht berechtigt" }, { status: 403 })
+  }
+
   try {
     // Nextcloud-Dateien laden
     const nextcloudPfad = `/Koch-Aufforstung/Kunden/${kundeId}`

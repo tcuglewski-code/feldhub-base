@@ -6,12 +6,11 @@
  */
 
 import { NextRequest, NextResponse } from "next/server"
-import { getServerSession } from "next-auth"
-import { authOptions } from "@/lib/auth"
+import { auth } from "@/lib/auth"
 import { DEFAULT_UPSELL_TRIGGERS } from "@/lib/upselling"
 
 export async function GET(request: NextRequest) {
-  const session = await getServerSession(authOptions)
+  const session = await auth()
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
   return NextResponse.json({

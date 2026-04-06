@@ -15,7 +15,7 @@ import Script from 'next/script';
 import type { TenantConfig } from '@/config/tenant';
 
 interface PlausibleProviderProps {
-  config: TenantConfig;
+  config?: TenantConfig | null;
   children: React.ReactNode;
 }
 
@@ -56,7 +56,7 @@ export function usePlausible() {
  * und eine Domain konfiguriert ist.
  */
 export function PlausibleProvider({ config, children }: PlausibleProviderProps) {
-  const plausibleConfig = config.analytics?.plausible;
+  const plausibleConfig = config?.analytics?.plausible;
   
   // Skip wenn nicht aktiviert oder keine Domain
   const isEnabled = plausibleConfig?.enabled && plausibleConfig?.domain;

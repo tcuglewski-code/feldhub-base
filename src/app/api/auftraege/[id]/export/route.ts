@@ -1,18 +1,26 @@
 // GET /api/auftraege/[id]/export?format=gpx|kml
 // Exportiert GPS-Koordinaten eines Auftrags als GPX oder KML-Datei
+// IDOR-Fix OIB: Auth + tenantId-Validierung — verhindert Cross-Tenant-Zugriff
 
 import { prisma } from "@/lib/prisma"
+import { auth } from "@/lib/auth"
 import { NextRequest } from "next/server"
 
 export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const session = await auth()
+  if (!session) {
+    return new Response("Nicht autorisiert", { status: 401 })
+  }
+
   const { id } = await params
+  const tenantId = session.user.tenantId
   const format = new URL(req.url).searchParams.get("format") ?? "gpx"
 
-  const auftrag = await prisma.auftrag.findUnique({
-    where: { id },
+  const auftrag = await prisma.auftrag.findFirst({
+    where: { id, tenantId },
     include: { protokolle: true },
   })
 

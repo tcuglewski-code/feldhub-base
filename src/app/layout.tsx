@@ -4,19 +4,25 @@ import { Toaster } from "sonner"
 import { ThemeProvider, ContrastWarningBanner } from "@/components/providers/ThemeProvider"
 import { SessionProvider } from "@/components/providers/SessionProvider"
 import { PlausibleProvider } from "@/components/providers/PlausibleProvider"
-import { tenantConfig } from "@/config/tenant"
+import { getCurrentTenant } from "@/config/tenant"
+
+function getTenantSafe() {
+  try { return getCurrentTenant() } catch { return null }
+}
+
+const tc = getTenantSafe()
 
 export const metadata: Metadata = {
-  title: `${tenantConfig.shortName} — ${tenantConfig.tagline}`,
-  description: tenantConfig.tagline,
+  title: tc ? `${tc.shortName} — ${tc.tagline}` : "Feldhub",
+  description: tc?.tagline ?? "Field Service Management",
   icons: {
-    icon: tenantConfig.branding.favicon,
-    apple: tenantConfig.branding.appleTouchIcon,
+    icon: tc?.branding?.favicon,
+    apple: tc?.branding?.appleTouchIcon,
   },
   openGraph: {
-    title: tenantConfig.name,
-    description: tenantConfig.tagline,
-    images: tenantConfig.branding.ogImage ? [tenantConfig.branding.ogImage] : [],
+    title: tc?.name ?? "Feldhub",
+    description: tc?.tagline ?? "Field Service Management",
+    images: tc?.branding?.ogImage ? [tc.branding.ogImage] : [],
   },
 }
 
@@ -26,7 +32,7 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang={tenantConfig.locale.language} suppressHydrationWarning>
+    <html lang={tc?.locale?.language ?? "de"} suppressHydrationWarning>
       <head>
         {/* Prevent FOUC (Flash of Unstyled Content) */}
         <script
@@ -48,8 +54,8 @@ export default function RootLayout({
       </head>
       <body className="antialiased theme-transition">
         <SessionProvider>
-          <ThemeProvider config={tenantConfig}>
-            <PlausibleProvider config={tenantConfig}>
+          <ThemeProvider config={tc}>
+            <PlausibleProvider config={tc}>
               {children}
               <Toaster 
                 position="top-right" 

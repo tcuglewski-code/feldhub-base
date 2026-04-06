@@ -15,7 +15,7 @@ export interface ThemeContextValue {
   resolvedMode: 'light' | 'dark'
   setMode: (mode: ThemeMode) => void
   toggleMode: () => void
-  config: TenantConfig
+  config: TenantConfig | null | undefined
   contrastWarnings: ContrastWarning[]
   isDarkModeEnabled: boolean
 }
@@ -32,19 +32,20 @@ const ThemeContext = createContext<ThemeContextValue | undefined>(undefined)
 
 interface ThemeProviderProps {
   children: ReactNode
-  config?: TenantConfig
+  config?: TenantConfig | null
   defaultMode?: ThemeMode
   storageKey?: string
 }
 
 export function ThemeProvider({
   children,
-  config = tenantConfig,
+  config: configProp,
   defaultMode = 'system',
   storageKey = 'appfabrik-theme-mode',
 }: ThemeProviderProps) {
+  const config = configProp ?? tenantConfig
   // Dark Mode nur wenn in config aktiviert
-  const isDarkModeEnabled = config.features.darkMode
+  const isDarkModeEnabled = config?.features?.darkMode ?? false
   
   // State für Theme-Modus
   const [mode, setModeState] = useState<ThemeMode>(() => {
@@ -99,10 +100,10 @@ export function ThemeProvider({
   
   // CSS-Variablen anwenden
   useEffect(() => {
-    if (typeof window === 'undefined') return
-    
+    if (typeof window === 'undefined' || !config) return
+
     const root = document.documentElement
-    
+
     // Basis-Variablen aus tenant.ts
     const baseVariables = generateCssVariables(config)
     
@@ -136,6 +137,7 @@ export function ThemeProvider({
   
   // Kontrast-Validierung
   const contrastWarnings = useMemo(() => {
+    if (!config) return []
     const validation = validateTheme(config)
     
     // In Development: Warnungen in Console loggen

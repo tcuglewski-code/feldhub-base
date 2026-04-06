@@ -9,8 +9,10 @@ export async function GET(
   const session = await auth()
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
+  // IDOR-Fix OIC: tenantId-Validierung — verhindert Cross-Tenant-Zugriff
+  const tenantId = session.user.tenantId
   const { id } = await params
-  const mitarbeiter = await prisma.mitarbeiter.findUnique({ where: { id } })
+  const mitarbeiter = await prisma.mitarbeiter.findFirst({ where: { id, tenantId } })
   if (!mitarbeiter) return NextResponse.json({ error: "Nicht gefunden" }, { status: 404 })
 
   return NextResponse.json(mitarbeiter)

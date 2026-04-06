@@ -21,6 +21,19 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: "Zugriff verweigert" }, { status: 403 })
   }
 
+  // IDOR-Fix OIF: Prüfe dass Datei zum Tenant gehört
+  // Extrahiere kundeId aus Pfad: /Koch-Aufforstung/Kunden/{kundeId}/...
+  const pfadTeile = pfad.split("/")
+  const kundeIdAusPfad = pfadTeile[3]
+  if (kundeIdAusPfad) {
+    const { prisma } = await import("@/lib/prisma")
+    const tenantId = session.user.tenantId
+    const kontakt = await prisma.kontakt.findFirst({ where: { id: kundeIdAusPfad, tenantId } })
+    if (!kontakt) {
+      return NextResponse.json({ error: "Nicht berechtigt" }, { status: 403 })
+    }
+  }
+
   try {
     const nextcloudUrl = downloadUrl(pfad)
     const headers = downloadHeaders()

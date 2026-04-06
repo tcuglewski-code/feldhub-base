@@ -15,7 +15,9 @@ export async function GET(req: NextRequest) {
   const take = Math.min(parseInt(searchParams.get("limit") ?? "50"), 200)
   const skip = parseInt(searchParams.get("offset") ?? "0")
 
-  const where: Record<string, unknown> = {}
+  // IDOR-Fix OIE: tenantId-Validierung — verhindert Cross-Tenant-Zugriff
+  const tenantId = session.user.tenantId
+  const where: Record<string, unknown> = { tenantId }
   if (auftragId) where.auftragId = auftragId
   if (gruppeId) where.gruppeId = gruppeId
   if (von || bis) {

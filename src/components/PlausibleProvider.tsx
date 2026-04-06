@@ -9,7 +9,7 @@
 
 import NextPlausibleProvider from 'next-plausible';
 import { ReactNode } from 'react';
-import { getTenantConfig } from '@/lib/tenant';
+import { getCurrentTenant as getTenantConfig } from '@/config/tenant';
 
 interface PlausibleProviderProps {
   children: ReactNode;

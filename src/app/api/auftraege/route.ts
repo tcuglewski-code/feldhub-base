@@ -18,8 +18,10 @@ export async function GET(req: NextRequest) {
   const take = Math.min(parseInt(searchParams.get("limit") ?? "50"), 200)
   const skip = parseInt(searchParams.get("offset") ?? "0")
 
+  // IDOR-Fix OIB: tenantId-Validierung — verhindert Cross-Tenant-Zugriff
+  const tenantId = session.user.tenantId
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const where: any = {}
+  const where: any = { tenantId }
   if (status) where.status = status
   if (typ) where.typ = typ
 

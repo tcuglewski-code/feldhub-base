@@ -844,6 +844,9 @@ export function getCurrentTenant(): TenantConfig {
 // RE-EXPORT for backwards compatibility
 // =============================================================================
 
+// Alias for backwards compatibility
+export { getCurrentTenant as getTenantConfig }
+
 // Default export (wird von getCurrentTenant() überschrieben nach Laden der Tenants)
 export let tenantConfig: TenantConfig;
 

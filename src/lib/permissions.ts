@@ -270,6 +270,13 @@ export function isAdmin(session: Session | null): boolean {
 }
 
 /**
+ * Prüft ob der User Admin oder Geschäftsführer ist
+ */
+export function isAdminOrGF(session: Session | null): boolean {
+  return hasRole(session, 'admin', 'geschaeftsfuehrer', 'gf', 'manager', 'verwaltung')
+}
+
+/**
  * Prüft ob der User Manager oder höher ist
  */
 export function isManager(session: Session | null): boolean {
@@ -414,6 +421,46 @@ export function getAllPermissions(): string[] {
   }
   
   permissions.push('*') // Super-Admin
-  
+
   return permissions
+}
+
+// ============================================================
+// EXPORTS für Admin-UI (Benutzer-Verwaltung)
+// ============================================================
+
+export type Permission = string
+
+export const ALL_PERMISSIONS: Permission[] = getAllPermissions()
+
+export const PERMISSION_GROUPS = getPermissionGroups()
+
+export const ROLE_TEMPLATES: Record<string, { label: string; permissions: Permission[] }> = {
+  admin: {
+    label: 'Administrator',
+    permissions: ['*'],
+  },
+  manager: {
+    label: 'Manager / Verwaltung',
+    permissions: [
+      'projects:*', 'team:*', 'timeEntries:*', 'invoices:*',
+      'quotes:*', 'inventory:*', 'equipment:*', 'documents:*',
+      'reports:*', 'dailyReports:*', 'contacts:*', 'calendar:*',
+      'seasons:*', 'portal:read',
+    ],
+  },
+  mitarbeiter: {
+    label: 'Mitarbeiter',
+    permissions: [
+      'projects:read', 'timeEntries:create', 'timeEntries:read:own',
+      'dailyReports:create', 'dailyReports:read:own',
+      'documents:read', 'equipment:read', 'calendar:read',
+    ],
+  },
+  kunde: {
+    label: 'Kunde / Portal-User',
+    permissions: [
+      'portal:read', 'portal:create', 'documents:read:own',
+    ],
+  },
 }

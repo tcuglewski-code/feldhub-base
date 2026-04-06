@@ -9,7 +9,7 @@
 
 import { NextRequest, NextResponse } from "next/server"
 import { z } from "zod"
-import { getTenantConfig } from "@/config/tenant"
+import { getCurrentTenant as getTenantConfig } from "@/config/tenant"
 
 const BugReportSchema = z.object({
   // Kontakt

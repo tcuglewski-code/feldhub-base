@@ -36,25 +36,27 @@ import {
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { resetAndStartTour } from "@/components/tour/ForstManagerTour"
-import tenantConfig from "@/config/tenant"
+import { getCurrentTenant } from "@/config/tenant"
+
+const tenantConfig = (() => { try { return getCurrentTenant() } catch { return null } })()
 
 // Navigation Items mit Modul-Zuordnung
 const allNavItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, module: null }, // immer sichtbar
-  { href: "/auftraege", label: tenantConfig.labels.auftraege, icon: ClipboardList, module: "auftraege" },
+  { href: "/auftraege", label: tenantConfig?.labels?.auftraege ?? "Aufträge", icon: ClipboardList, module: "auftraege" },
   { href: "/angebote", label: "Angebote", icon: FileText, module: "auftraege" },
   { href: "/saisons", label: "Saisons", icon: Calendar, module: null },
-  { href: "/mitarbeiter", label: tenantConfig.labels.mitarbeiter, icon: Users, module: "mitarbeiter" },
+  { href: "/mitarbeiter", label: tenantConfig?.labels?.mitarbeiter ?? "Mitarbeiter", icon: Users, module: "mitarbeiter" },
   { href: "/gruppen", label: "Teams", icon: UsersRound, module: "mitarbeiter" },
-  { href: "/lager", label: tenantConfig.labels.lager, icon: Package, module: "lager" },
-  { href: "/fuhrpark", label: tenantConfig.labels.fuhrpark, icon: Car, module: "fuhrpark" },
+  { href: "/lager", label: tenantConfig?.labels?.lager ?? "Lager", icon: Package, module: "lager" },
+  { href: "/fuhrpark", label: tenantConfig?.labels?.fuhrpark ?? "Fuhrpark", icon: Car, module: "fuhrpark" },
   { href: "/lohn", label: "Lohn", icon: DollarSign, module: "lohn" },
   { href: "/stunden", label: "Stunden", icon: Clock, module: "lohn" },
   { href: "/vorschuesse", label: "Vorschüsse", icon: TrendingDown, module: "lohn" },
   { href: "/rechnungen", label: "Rechnungen", icon: Receipt, module: "rechnungen" },
   { href: "/schulungen", label: "Schulungen", icon: BookOpen, module: null },
   { href: "/dokumente", label: "Dokumente", icon: FileText, module: "dokumente" },
-  { href: "/protokolle", label: tenantConfig.labels.protokolle, icon: ScrollText, module: "protokolle" },
+  { href: "/protokolle", label: tenantConfig?.labels?.protokolle ?? "Protokolle", icon: ScrollText, module: "protokolle" },
   { href: "/kontakte", label: "Kontakte", icon: MapPin, module: "kontakte" },
   { href: "/reports", label: "Reports", icon: BarChart3, module: "reports" },
   { href: "/jahresuebersicht", label: "Jahresübersicht", icon: BarChart3, module: "reports" },
@@ -66,7 +68,7 @@ const allNavItems = [
 const navItems = allNavItems.filter((item) => {
   if (item.module === null) return true
   // @ts-ignore
-  return tenantConfig.modules[item.module] === true
+  return tenantConfig?.modules?.[item.module as keyof typeof tenantConfig.modules] === true
 })
 
 export function Sidebar() {
@@ -167,13 +169,13 @@ export function Sidebar() {
           <div className="flex items-center gap-3">
             <div 
               className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
-              style={{ backgroundColor: tenantConfig.colors.primary }}
+              style={{ backgroundColor: tenantConfig?.colors?.primary ?? '#2C3A1C' }}
             >
               <Briefcase className="w-5 h-5 text-emerald-400" />
             </div>
             <div>
-              <p className="text-sm font-bold text-white leading-tight">{tenantConfig.shortName}</p>
-              <p className="text-xs text-zinc-500 leading-tight">{tenantConfig.tagline}</p>
+              <p className="text-sm font-bold text-white leading-tight">{tenantConfig?.shortName ?? "Feldhub"}</p>
+              <p className="text-xs text-zinc-500 leading-tight">{tenantConfig?.tagline ?? ""}</p>
             </div>
           </div>
         </div>
@@ -209,7 +211,7 @@ export function Sidebar() {
                     ? "text-emerald-400 font-medium"
                     : "text-zinc-400 hover:bg-[#1e1e1e] hover:text-white"
                 )}
-                style={isActive ? { backgroundColor: tenantConfig.colors.primary } : undefined}
+                style={isActive ? { backgroundColor: tenantConfig?.colors?.primary ?? '#2C3A1C' } : undefined}
               >
                 <Icon className="w-4 h-4 flex-shrink-0" />
                 <span>{item.label}</span>
@@ -228,7 +230,7 @@ export function Sidebar() {
                   ? "text-emerald-400 font-medium"
                   : "text-zinc-400 hover:bg-[#1e1e1e] hover:text-white"
               )}
-              style={pathname === "/admin/benutzer" ? { backgroundColor: tenantConfig.colors.primary } : undefined}
+              style={pathname === "/admin/benutzer" ? { backgroundColor: tenantConfig?.colors?.primary ?? '#2C3A1C' } : undefined}
             >
               <Shield className="w-4 h-4 flex-shrink-0" />
               <span>Benutzerverwaltung</span>
@@ -353,7 +355,7 @@ export function Sidebar() {
               </div>
             )}
           </div>
-          <p className="text-xs text-zinc-700 px-3 mt-2">{tenantConfig.legal.companyName}</p>
+          <p className="text-xs text-zinc-700 px-3 mt-2">{tenantConfig?.legal?.companyName ?? ""}</p>
         </div>
       </aside>
     </>

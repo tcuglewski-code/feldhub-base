@@ -2,13 +2,19 @@ import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { auth } from "@/lib/auth"
 
+// IDOR-Fix OIE: Auth + tenantId-Validierung — verhindert Cross-Tenant-Zugriff
 export async function GET(req: NextRequest) {
+  const session = await auth()
+  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+
+  const tenantId = session.user.tenantId
   const { searchParams } = new URL(req.url)
   const typ = searchParams.get("typ")
   const search = searchParams.get("search")
 
   const kontakte = await prisma.kontakt.findMany({
     where: {
+      tenantId,
       ...(typ ? { typ } : {}),
       ...(search
         ? {

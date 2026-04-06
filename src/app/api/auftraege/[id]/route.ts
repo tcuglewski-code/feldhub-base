@@ -4,10 +4,15 @@ import { auth } from "@/lib/auth"
 // Sprint AG: E-Mail-Benachrichtigung bei Status-Änderung
 import { emailService } from "@/lib/email"
 
+// IDOR-Fix OIB: Auth + tenantId-Validierung — verhindert Cross-Tenant-Zugriff
 export async function GET(_: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const session = await auth()
+  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+
   const { id } = await params
-  const auftrag = await prisma.auftrag.findUnique({
-    where: { id },
+  const tenantId = session.user.tenantId
+  const auftrag = await prisma.auftrag.findFirst({
+    where: { id, tenantId },
     include: {
       saison: true,
       gruppe: true,
@@ -17,7 +22,6 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ id: st
     },
   })
   if (!auftrag) return NextResponse.json({ error: "Not found" }, { status: 404 })
-  // wizardDaten is already included via findUnique (no select restriction)
   return NextResponse.json(auftrag)
 }
 
